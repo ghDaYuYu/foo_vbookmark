@@ -4,10 +4,10 @@
 #define COMPONENT_DESC "Provides playback bookmark functionality."
 #define COMPONENT_NAME "foo_vbookmark"
 #define COMPONENT_NAME_DLL COMPONENT_NAME ".dll"
-#define COMPONENT_YEAR "2024"
+#define COMPONENT_YEAR "2025"
 
 #define COMPONENT_VERSION_MAJOR 1
-#define COMPONENT_VERSION_MINOR 4
+#define COMPONENT_VERSION_MINOR 5
 #define COMPONENT_VERSION_PATCH 0
 #define COMPONENT_VERSION_SUB_PATCH 0
 
