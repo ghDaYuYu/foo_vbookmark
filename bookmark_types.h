@@ -36,20 +36,15 @@ public:
 	GUID guid_playlist = pfc::guid_null;
 
 	void set_rt_time(double t) {
+		t = (std::max)(0.0, t);
 		time = t < KMin_Lapse ? 0.0 : t;
 	}
 	void set_time(double t) {
-		if (t == SIZE_MAX) {
-			t = 0.0;
-			return;
-		}
+		t = (std::max)(0.0, t);
 		time = t < KMin_Lapse ? 0.0 : t;
 	}
 	void set_exact_time(double t) {
-		if (t == SIZE_MAX) {
-			t = 0.0;
-			return;
-		}
+		t = (std::max)(0.0, t);
 		time = t;
 	}
 	const double get_time() const {
