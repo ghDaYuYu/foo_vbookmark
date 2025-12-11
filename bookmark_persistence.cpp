@@ -124,6 +124,7 @@ void bookmark_persistence::writeDataFileJSON(const std::vector<bookmark_t>& mast
 				auto res = json_array_append(arr_top, wobj);
 			}
 
+			setlocale(LC_ALL, ".UTF8");
 			std::filesystem::path os_file = genFilePath();
 			jf = _wopen(os_file.wstring().c_str(), _O_CREAT | _O_TRUNC | _O_RDWR | _O_TEXT/*_O_U8TEXT*/, _S_IWRITE);
 
@@ -168,7 +169,7 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 		int jf = -1;
 
 		try {
-		
+			setlocale(LC_ALL, ".UTF8");
 			std::filesystem::path os_file = genFilePath();
 			jf = _wopen(os_file.wstring().c_str(), _O_RDONLY);
 
