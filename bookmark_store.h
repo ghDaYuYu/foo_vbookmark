@@ -61,8 +61,13 @@ public:
 	bool _write() {
 		m_persist.writeDataFile(m_masterList); /*todo*/ return true;
 	}
-	void Write() {
-		_write();
+	void Write(bool threaded = true) {
+		if (threaded) {
+			_write();
+		}
+		else {
+			m_persist.writeDataFileJSON(m_masterList);
+		}
 	}
 
 	void _remove(const bit_array& p_mask) {

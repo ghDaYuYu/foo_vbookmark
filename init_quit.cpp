@@ -23,7 +23,7 @@ namespace {
 				g_bmAuto.upgradeDummy(g_guiLists);
 			}
 
-			g_store.Write();
+			g_store.Write(false);
 		}
 	};
 
