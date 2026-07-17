@@ -407,7 +407,7 @@ namespace dlg {
 					}
 
 					bool bresetable_time = false, bresetable_playlist = false, bresetable_comment = false;
-					bool bassignable = false, bassignable_sel = false;
+					bool bassignable = false, bassignable_single_sel = false, bassignable_multi_sel = false;
 					bool bresetable_time_ms = false;
 
 					if (bsinglesel) {
@@ -418,8 +418,9 @@ namespace dlg {
 						bresetable_comment = rec.comment.get_length();
 					}
 					
-					bassignable = (bool)icount && (bsinglesel ||csel > 1) && bactive_playlist;
-					bassignable_sel = csel == 1 && bactive_playlist && bactive_playlist_singlesel;
+					bassignable = (bool)icount && (bsinglesel || csel > 1) && bactive_playlist;
+					bassignable_single_sel = csel == 1 && bassignable && bactive_playlist_singlesel;
+					bassignable_multi_sel = csel > 1 && bassignable && bactive_playlist_singlesel;
 
 					bresetable_time |= csel > 1;
 					bresetable_time_ms |= csel > 1;
@@ -427,10 +428,39 @@ namespace dlg {
 					bresetable_comment |= csel > 1;
 
 					//Contextmenu for listbody
-					enum { ID_STORE = 1, ID_RESTORE, ID_RESET_TIME, ID_RESET_TIME_MS, ID_ASSIGN_PLAYLIST, ID_ASSIGN_PLAYLIST_ACTIVE_SEL, ID_ADD_TO_QUEUE, ID_RESET_PLAYLIST, ID_RESET_COMMENT, ID_DEL, ID_CLEAR,
-						ID_COPY_BOOKMARK, ID_CMD_COPY, ID_COPY_PATH, ID_CMD_OPEN_FOLDER, ID_SELECTALL, ID_SELECTNONE, ID_INVERTSEL, ID_MAKEPRIME,
+					enum { ID_STORE = 1, ID_RESTORE, ID_RESET_TIME, ID_RESET_TIME_MS, 
+						ID_ADD_TO_QUEUE, ID_RESET_PLAYLIST, ID_RESET_COMMENT,
+						ID_DEL, ID_CLEAR = 100,
+						ID_ASSIGN_PLAYLIST, ID_ASSIGN_SINGLE_TO_PLAYLIST_ACTIVE_SEL, ID_ASSIGN_MULTI_TO_PLAYLIST_ACTIVE_SEL,
+						ID_COPY_BOOKMARK = 200, ID_CMD_COPY, ID_COPY_PATH, ID_CMD_OPEN_FOLDER, ID_SELECTALL, ID_SELECTNONE, ID_INVERTSEL, ID_MAKEPRIME,
 						ID_PAUSE_BOOKMARKS, ID_PREF_PAGE, ID_CMD_SEL_PROPERTIES
 					};
+
+					UINT submenus_ids[3] = {
+						ID_ASSIGN_PLAYLIST, ID_ASSIGN_SINGLE_TO_PLAYLIST_ACTIVE_SEL,
+						ID_ASSIGN_MULTI_TO_PLAYLIST_ACTIVE_SEL
+					};
+					pfc::array_t<HMENU> submenus; submenus.resize(1);
+					pfc::array_t<MENUITEMINFO> submenu_infos; submenu_infos.resize(1);
+					for (size_t n = 0; n < 1; n++) {
+						submenus[n] = CreatePopupMenu();
+						submenu_infos[n] = { 0 };
+						submenu_infos[n].cbSize = sizeof(MENUITEMINFO);
+						submenu_infos[n].fMask = MIIM_SUBMENU | MIIM_STRING | MIIM_ID;
+						submenu_infos[n].hSubMenu = submenus[n];
+						submenu_infos[n].dwTypeData = _T("Assing to active playlist...");
+						submenu_infos[n].wID = submenus_ids[n];
+					}
+
+					uAppendMenu(submenus[0], MF_STRING | (!bupdatable || !bassignable ? MF_DISABLED | MF_GRAYED : 0),
+						submenus_ids[0], "Assi&gn active playlist");
+					uAppendMenu(submenus[0], MF_STRING | (!bupdatable || !bassignable_single_sel ? MF_DISABLED | MF_GRAYED : 0),
+						submenus_ids[1], "Assign a single boo&kmark to the selection in the active playlist");
+					AppendMenu(submenus[0], MF_STRING, MF_SEPARATOR, 0);
+					uAppendMenu(submenus[0], MF_STRING | (!bupdatable || !bassignable_multi_sel ? MF_DISABLED | MF_GRAYED : 0),
+						submenus_ids[2], "Assign m&ultiple bookmarks to the selection in the active playlist");
+
+
 					menu.AppendMenu(MF_STRING | (!CListCtrlMarkDialog::canStore() ? MF_DISABLED | MF_GRAYED : 0), ID_STORE, L"&Add bookmark");
 					menu.AppendMenu(MF_STRING | (!bsinglesel ? MF_DISABLED | MF_GRAYED : 0), ID_RESTORE, L"R&estore\tENTER");
 					menu.AppendMenu(MF_SEPARATOR);
@@ -441,8 +471,9 @@ namespace dlg {
 					menu.AppendMenu(MF_STRING | (!bupdatable || !bresetable_playlist ? MF_DISABLED | MF_GRAYED : 0), ID_RESET_PLAYLIST, L"Reset pla&ylist");
 					menu.AppendMenu(MF_STRING | (!bupdatable || !bresetable_comment ? MF_DISABLED | MF_GRAYED : 0), ID_RESET_COMMENT, L"Reset co&mment");
 					menu.AppendMenu(MF_SEPARATOR);
-					menu.AppendMenu(MF_STRING | (!bupdatable || !bassignable ? MF_DISABLED | MF_GRAYED : 0), ID_ASSIGN_PLAYLIST, L"Assi&gn active playlist");
-					menu.AppendMenu(MF_STRING | (!bupdatable || !bassignable_sel ? MF_DISABLED | MF_GRAYED : 0), ID_ASSIGN_PLAYLIST_ACTIVE_SEL, L"Assign selection in active playlist");
+
+					InsertMenuItem(menu, submenus_ids[0], true, &submenu_infos[0]);
+
 					menu.AppendMenu(MF_SEPARATOR);
 					menu.AppendMenu(MF_STRING | (!bupdatable || !(bool)csel ? MF_DISABLED | MF_GRAYED : 0), ID_DEL, L"&Remove\tDel");
 					menu.AppendMenu(MF_SEPARATOR);
@@ -491,8 +522,10 @@ namespace dlg {
 						break;
 					case ID_ASSIGN_PLAYLIST:
 					[[fallthrough]];
-					case ID_ASSIGN_PLAYLIST_ACTIVE_SEL:
-					[fallthrough]];
+					case ID_ASSIGN_SINGLE_TO_PLAYLIST_ACTIVE_SEL:
+					[[fallthrough]];
+					case ID_ASSIGN_MULTI_TO_PLAYLIST_ACTIVE_SEL:
+					[[fallthrough]];
 					case ID_RESET_TIME:
 					[[fallthrough]];
 					case ID_RESET_TIME_MS:
@@ -500,6 +533,11 @@ namespace dlg {
 					case ID_RESET_PLAYLIST:
 					[[fallthrough]];
 					case ID_RESET_COMMENT: {
+
+						//single playlist alocation
+						bool pl_location_ok = false;
+						pfc::string_formatter pl_songDesc;
+
 						size_t c = m_guiList.GetItemCount();
 						size_t f = selmask.find_first(true, 0, c);
 
@@ -527,7 +565,7 @@ namespace dlg {
 								g_store.SetItem(w, rec);
 								changed |= true;
 							}
-							else if (cmd == ID_ASSIGN_PLAYLIST || ID_ASSIGN_PLAYLIST_ACTIVE_SEL) {
+							else if (cmd == ID_ASSIGN_PLAYLIST || cmd == ID_ASSIGN_SINGLE_TO_PLAYLIST_ACTIVE_SEL || cmd == ID_ASSIGN_MULTI_TO_PLAYLIST_ACTIVE_SEL) {
 
 								GUID guid;
 								pfc::string8 buffer;
@@ -538,18 +576,21 @@ namespace dlg {
 								rec.playlist = buffer;
 								rec.guid_playlist = guid;
 
-								if (ID_ASSIGN_PLAYLIST_ACTIVE_SEL) {
+								if (cmd == ID_ASSIGN_SINGLE_TO_PLAYLIST_ACTIVE_SEL || cmd == ID_ASSIGN_MULTI_TO_PLAYLIST_ACTIVE_SEL) {
 
-									metadb_handle_ptr dbHandle_item = act_playlist_sel_items.get_item(0);
-									pfc::string_formatter songDesc;
-									titleformat_object::ptr desc_format;
-									static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(desc_format, cfg_desc_format.get_value().c_str());
+									metadb_handle_ptr dbHandle_pl_item = act_playlist_sel_items.get_item(0);
 
-									bool blocation_ok = dbHandle_item->format_title(NULL, songDesc, desc_format, NULL);
-									if (blocation_ok) {
-										rec.path = dbHandle_item->get_path();
-										rec.subsong = dbHandle_item->get_subsong_index();
-										rec.desc = songDesc;
+									if (w == f) {
+										//once
+										titleformat_object::ptr desc_format;
+										static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(desc_format, cfg_desc_format.get_value().c_str());
+										pl_location_ok = dbHandle_pl_item->format_title(NULL, pl_songDesc, desc_format, NULL);
+									}
+
+									if (pl_location_ok) {
+										rec.path = dbHandle_pl_item->get_path();
+										rec.subsong = dbHandle_pl_item->get_subsong_index();
+										rec.desc = pl_songDesc;
 									}
 								}
 
