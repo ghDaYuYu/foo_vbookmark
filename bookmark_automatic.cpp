@@ -21,7 +21,7 @@ void bookmark_automatic::updateDummyTime() {
 		m_updatePlaylist = false;
 
 		auto playlist_manager_ptr = playlist_manager_v5::get();
-		pfc::string_fixed_t<80> playing_pl_name;
+		pfc::string8 playing_pl_name;
 		size_t index_playlist;
 		size_t index_item;
 

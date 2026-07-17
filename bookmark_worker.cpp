@@ -56,7 +56,7 @@ void bookmark_worker::store(const bookmark_t bookmark) {
 			}
 
 			//TODO: graceful failure?!
-			pfc::string_fixed_t<80> playing_pl_name = cfg_monitor ? "Could not read playlist name." : "";
+			pfc::string8 playing_pl_name = cfg_monitor ? "Could not read playlist name." : "";
 			size_t index_playlist;
 			GUID guid_playlist = pfc::guid_null;
 			size_t index_item;
