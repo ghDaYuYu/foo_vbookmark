@@ -375,7 +375,7 @@ namespace dlg {
 					}
 				}
 				else {
-					bool bupdatable = true;
+					bool bupdatable = true; //todo
 					auto selmask = m_guiList.GetSelectionMask();
 					auto isel = m_guiList.GetSingleSel();
 					size_t icount = m_guiList.GetItemCount();
@@ -417,7 +417,7 @@ namespace dlg {
 						bresetable_comment = rec.comment.get_length();
 
 					}
-					
+
 					bassignable = (bool)icount && (bsinglesel || csel > 1) && bactive_playlist;
 					bassignable_single_sel = csel == 1 && bassignable && bactive_playlist_singlesel;
 					bassignable_multi_sel = csel > 1 && bassignable && bactive_playlist_singlesel;
@@ -447,19 +447,21 @@ namespace dlg {
 						submenus[n] = CreatePopupMenu();
 						submenu_infos[n] = { 0 };
 						submenu_infos[n].cbSize = sizeof(MENUITEMINFO);
-						submenu_infos[n].fMask = MIIM_SUBMENU | MIIM_STRING | MIIM_ID;
+						submenu_infos[n].fMask = MIIM_SUBMENU | MIIM_STRING | MIIM_ID | MIIM_STATE;
 						submenu_infos[n].hSubMenu = submenus[n];
-						submenu_infos[n].dwTypeData = _T("Assing to active playlist...");
+						submenu_infos[n].dwTypeData = _T("Reassing locatio&ns...");
 						submenu_infos[n].wID = submenus_ids[n];
+						submenu_infos[n].fState = !bupdatable || !bassignable ? MF_DISABLED | MF_GRAYED : 0;
 					}
 
 					uAppendMenu(submenus[0], MF_STRING | (!bupdatable || !bassignable ? MF_DISABLED | MF_GRAYED : 0),
 						submenus_ids[0], "Assi&gn active playlist");
+					AppendMenu(submenus[0], MF_STRING, MF_SEPARATOR, 0);
 					uAppendMenu(submenus[0], MF_STRING | (!bupdatable || !bassignable_single_sel ? MF_DISABLED | MF_GRAYED : 0),
-						submenus_ids[1], "Assign a single boo&kmark to the selection in the active playlist");
+						submenus_ids[1], "Assign single boo&kmark the active playlist and track selection");
 					AppendMenu(submenus[0], MF_STRING, MF_SEPARATOR, 0);
 					uAppendMenu(submenus[0], MF_STRING | (!bupdatable || !bassignable_multi_sel ? MF_DISABLED | MF_GRAYED : 0),
-						submenus_ids[2], "Assign m&ultiple bookmarks to the selection in the active playlist");
+						submenus_ids[2], "Assign m&ultiple bookmarks the active playlist and track selection");
 
 
 					menu.AppendMenu(MF_STRING | (!CListCtrlMarkDialog::canStore() ? MF_DISABLED | MF_GRAYED : 0), ID_STORE, L"&Add bookmark");
@@ -489,7 +491,7 @@ namespace dlg {
 
 					// Note: Ctrl+A handled automatically by CListControl, no need for us to catch it
 					menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_SELECTALL, L"&Select all\tCtrl+A");
-					menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_SELECTNONE, L"C&lear selection");
+					menu.AppendMenu(MF_STRING | (!(bool)icount || !csel ? MF_DISABLED | MF_GRAYED : 0), ID_SELECTNONE, L"C&lear selection");
 					menu.AppendMenu(MF_STRING | (!(bool)csel ? MF_DISABLED | MF_GRAYED : 0), ID_INVERTSEL, L"&Invert selection");
 					menu.AppendMenu(MF_SEPARATOR);
 					menu.AppendMenu(MF_STRING | (is_cfg_Bookmarking() ? MF_UNCHECKED : MF_CHECKED), ID_PAUSE_BOOKMARKS, L"&Pause bookmarking");
@@ -507,7 +509,7 @@ namespace dlg {
 						descriptions.Set(ID_SELECTALL, "Selects all items");
 						descriptions.Set(ID_SELECTNONE, "Deselects all items");
 						descriptions.Set(ID_INVERTSEL, "Invert selection");
-						descriptions.Set(ID_ASSIGN_PLAYLIST, "Drop selected bookmark the active playlist then reassign playlist ");
+						descriptions.Set(ID_ASSIGN_PLAYLIST, "Drop selected bookmarks the active playlist then reassign playlist");
 						//descriptions.Set(ID_INVERTSEL, "The primary list's selection determines the bookmark restored by the global restore command.");
 
 						cmd = menu.TrackPopupMenuEx(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, descriptions, nullptr);
