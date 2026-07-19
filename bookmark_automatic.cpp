@@ -332,6 +332,7 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 			//The filter was either disabled or matched the current playlist, continue:
 			g_store.AddItem(std::move(bookmark_t(dummy)));
 
+			g_store.Write();
 			FB2K_console_print_v("Dummy stored");
 		}
 

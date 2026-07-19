@@ -13,9 +13,9 @@ public:
 	bookmark_persistence();
 	~bookmark_persistence();
 
-	void writeDataFile(const std::vector<bookmark_t>& masterList);
+	void writeDataFile(const std::vector<bookmark_t>& masterList, std::function<void() > sf_write_callback);
 	//Stores the contents of g_masterList in a persistent file
-	void writeDataFileJSON(const std::vector<bookmark_t>& masterList);
+	bool writeDataFileJSON(const std::vector<bookmark_t>& masterList);
 
 	//Replaces the contents of g_masterList with the contents of the persistent file
 	bool readDataFileJSON(std::vector<bookmark_t>& masterList);
@@ -25,4 +25,3 @@ private:
 
 	std::filesystem::path bookmark_persistence::genFilePath();
 };
-

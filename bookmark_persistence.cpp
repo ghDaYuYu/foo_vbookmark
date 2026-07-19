@@ -77,84 +77,87 @@ void add_rec(std::vector<json_t*> &vjson, const std::vector<pfc::string8>& vlbl,
 	}
 }
 
-void bookmark_persistence::writeDataFile(const std::vector<bookmark_t>& masterList) {
-	cmdThFile.add([this, &masterList] { writeDataFileJSON(masterList); });
+void bookmark_persistence::writeDataFile(const std::vector<bookmark_t>& masterList, std::function<void() > sf_write_callback) {
+	cmdThFile.add([this, &masterList, sf_write_callback] { bool res = writeDataFileJSON(masterList); if (res) sf_write_callback(); });
 }
 
 //save masterList to persistent storage
-void bookmark_persistence::writeDataFileJSON(const std::vector<bookmark_t>& masterList) {
+bool bookmark_persistence::writeDataFileJSON(const std::vector<bookmark_t>& masterList) {
+
+	bool bres = false;
 
 	if (core_api::is_quiet_mode_enabled()) {
 		FB2K_console_print_e("Quiet mode, will not write bookmarks to file");
-		return;
+		return false;
 	}
-		if (!masterList.size()) {
-			std::filesystem::path os_file_name = genFilePath();
-			if (std::filesystem::exists(os_file_name)) {
-				std::error_code ec;
-				std::filesystem::remove(os_file_name, ec);
-			}
-			return;
+	if (!masterList.size()) {
+		std::error_code ec;
+		std::filesystem::path os_file_name = genFilePath();
+		if (std::filesystem::exists(os_file_name)) {
+			std::filesystem::remove(os_file_name, ec);
+		}
+		return ec.value() == 0;
+	}
+
+
+	int jf = -1;
+
+	try {
+
+		FB2K_console_print_v("Write data file...");
+
+		size_t n_entries = masterList.size();
+
+		std::vector<json_t*> vjson;
+		std::vector<pfc::string8> vlbl = { "guid_bm", "time", "desc", "name", "playlist", "guid", "path", "subsong", "comment", "date" };
+
+		//first pass
+
+		for (size_t i = 0; i < n_entries; i++) {
+			//add boolmark_t to vjson as json object
+			add_rec(vjson, vlbl, masterList[i]);
 		}
 
+		//second pass, could have be done in first pass
 
-		int jf = -1;
+		json_t* arr_top = json_array();
 
-		try {
+		for (auto wobj : vjson) {
+			auto res = json_array_append(arr_top, wobj);
+		}
 
-			FB2K_console_print_v("Write data file...");
+		setlocale(LC_ALL, ".UTF8");
+		std::filesystem::path os_file = genFilePath();
+		jf = _wopen(os_file.wstring().c_str(), _O_CREAT | _O_TRUNC | _O_WRONLY| _O_TEXT/*_O_U8TEXT*/, _S_IWRITE);
 
-			size_t n_entries = masterList.size();
+		if (jf == -1) {
+			foobar2000_io::exception_io e("Open failed on output file");
+			throw e;
+		}
+		auto resdump = json_dumpfd(arr_top, jf, JSON_INDENT(5));
+		_close(jf);
 
-			std::vector<json_t*> vjson;
-			std::vector<pfc::string8> vlbl = { "guid_bm", "time", "desc", "name", "playlist", "guid", "path", "subsong", "comment", "date" };
+		bres = true;
 
-			//first pass
+		for (auto w : vjson) {
+			free(w);
+		}
 
-			for (size_t i = 0; i < n_entries; i++) {
-				//add boolmark_t to vjson as json object
-				add_rec(vjson, vlbl, masterList[i]);
-			}
-
-			//second pass, could have be done in first pass
-
-			json_t* arr_top = json_array();
-
-			for (auto wobj : vjson) {
-				auto res = json_array_append(arr_top, wobj);
-			}
-
-			setlocale(LC_ALL, ".UTF8");
-			std::filesystem::path os_file = genFilePath();
-			jf = _wopen(os_file.wstring().c_str(), _O_CREAT | _O_TRUNC | _O_RDWR | _O_TEXT/*_O_U8TEXT*/, _S_IWRITE);
-
-			if (jf == -1) {
-				foobar2000_io::exception_io e("Open failed on output file");
-				throw e;
-			}
-
-			auto res = json_dumpfd(arr_top, jf, JSON_INDENT(5));
+		FB2K_console_print_v("Wrote ", std::to_string(n_entries).c_str(), " bookmarks to file");
+	}
+	catch (foobar2000_io::exception_io e) {
+		if (jf != -1) {
 			_close(jf);
-
-			for (auto w : vjson) {
-				free(w);
-			}
-
-			FB2K_console_print_v("Wrote ", std::to_string(n_entries).c_str(), " bookmarks to file");
 		}
-		catch (foobar2000_io::exception_io e) {
-			if (jf != -1) {
-				_close(jf);
-			}
-			FB2K_console_print_e("Could not write bookmarks to file", e);
+		FB2K_console_print_e("Could not write bookmarks to file", e);
+	}
+	catch (...) {
+		if (jf != -1) {
+			_close(jf);
 		}
-		catch (...) {
-			if (jf != -1) {
-				_close(jf);
-			}
-			FB2K_console_print_e("Could not write bookmarks to file", "Unhandled Exception");
-		}
-	//}
+		FB2K_console_print_e("Could not write bookmarks to file", "Unhandled Exception");
+	}
+	return bres;
 }
 
 //restore masterList from persistent storage
@@ -182,7 +185,6 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 			auto json = json_loadfd(jf, JSON_DECODE_ANY, &error);
 			_close(jf);
 
-			auto json = json_load_file(os_file.generic_string().c_str(), JSON_DECODE_ANY, &error);
 			if (strlen(error.text) && error.line != -1) {
 				FB2K_console_print_v("JSON error: ",error.text,
 						" in line: ", error.line,
@@ -192,10 +194,18 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 				try {
 					if (std::filesystem::file_size(os_file.c_str())) {
 						FB2K_console_print_v("JSON error: Creating backup file...");
-						pfc::string8 buffer_bak;
-						buffer_bak << os_file.c_str() << ".bak";
-						std::filesystem::copy(os_file, buffer_bak.c_str(), std::filesystem::copy_options::update_existing);
-						FB2K_console_print_v("JSON error: Backup file created.");
+
+						pfc::string8 base_bak;
+						base_bak << os_file.c_str() << ".bak";
+
+						size_t posfix = 0;
+						pfc::string8 buffer_bak = base_bak;
+						while (std::filesystem::exists(buffer_bak.c_str())) {
+							++posfix;
+							buffer_bak = base_bak << posfix;
+						}
+						std::filesystem::copy(os_file, buffer_bak.c_str(), std::filesystem::copy_options::none);
+						FB2K_console_print_v(pfc::string_formatter() << "JSON error: Backup file " << buffer_bak <<" created.");
 					}
 				}
 				catch (std::filesystem::filesystem_error const& ex) {
@@ -218,7 +228,7 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 
 				{
 					elem.guid_playlist = pfc::guid_null;
-					js_fld = json_object_get(js_wobj, "bm_guid");
+					js_fld = json_object_get(js_wobj, "guid_bm");
 					const char* dmp_str = json_string_value(js_fld);
 					if (dmp_str) {
 						pfc::string8 tmpguid = pfc::string8(dmp_str);

@@ -23,6 +23,7 @@ namespace {
 				g_bmAuto.upgradeDummy(g_guiLists);
 			}
 
+			//false = use splitTask (app close blocker)
 			g_store.Write(false);
 		}
 	};
