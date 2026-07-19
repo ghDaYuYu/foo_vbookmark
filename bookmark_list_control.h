@@ -52,7 +52,6 @@ namespace dlg {
 		virtual void listColumnHeaderClick(ctx_t, size_t subItem) override {
 			//..
 		}
-
 		// Called prior to a typefind pass attempt, you can either deny entirely, or prepare any necessary data and allow it.
 		bool listAllowTypeFind(ctx_t) override { return true; }
 		// Allow type-find in a specific item/column?
@@ -179,6 +178,7 @@ namespace dlg {
 						break;
 					}
 				}
+				// end check paths
 
 				auto metadb_ptr = metadb::get();
 				metadb_handle_ptr track_bm = metadb_ptr->handle_create(rec.path.c_str(), rec.subsong);

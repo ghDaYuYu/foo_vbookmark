@@ -22,7 +22,6 @@
 
   extern cfg_int cfg_misc_flag;
 
-
 #define QUEUE_RESTORE_TO_FLAG                 1 << 0
 #define QUEUE_FLUSH_FLAG                      1 << 1
 #define QUEUE_CUST2_FLAG                      1 << 2

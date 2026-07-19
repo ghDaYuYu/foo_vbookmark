@@ -14,13 +14,13 @@ using namespace glb;
 
 void bookmark_automatic::updateDummyTime() {
 
-	auto oldtime = dummy.get_time();
 	dummy.set_rt_time(playback_control::get()->playback_get_position());
 
 	if (m_updatePlaylist) {
 		m_updatePlaylist = false;
 
 		auto playlist_manager_ptr = playlist_manager_v5::get();
+
 		pfc::string8 playing_pl_name;
 		size_t index_playlist;
 		size_t index_item;
@@ -192,7 +192,7 @@ void bookmark_automatic::updateDummy() {
 			dummy.desc = songDesc;
 		}
 		else {
-			
+
 				if (!dummy.desc.get_length()) {
 					dummy.desc = songDesc;
 				}
@@ -294,7 +294,7 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 			return false;
 		}
 		else {
-			//updateDummy();
+			//..
 		}
 	}
 

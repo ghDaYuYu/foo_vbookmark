@@ -22,7 +22,7 @@ namespace glb {
 
 	inline HWND g_wnd_bookmark_pref = NULL;
 
-	inline bookmark_store g_store; //masterList
+	inline bookmark_store g_store;      //masterList
 	inline bookmark_persistence g_file; //JSON file
 
 	inline dlg::CListControlBookmark* g_primaryGuiList = NULL;

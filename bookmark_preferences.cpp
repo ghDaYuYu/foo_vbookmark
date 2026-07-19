@@ -395,7 +395,7 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow, LPARAM) {
 	m_currentPlNames.clear();
 	size_t plCount = playlist_manager::get()->get_playlist_count();
 	CComboBox comboBox = GetDlgItem(IDC_CMB_PLAYLISTS);
-	
+
 	for (size_t i = 0; i < plCount; i++) {
 
 		pfc::string8 plName;
@@ -488,7 +488,7 @@ void CBookmarkPreferences::OnCheckChange(UINT uNotifyCode, int nId, CWindow wndC
 			if (fieldContent[0] != L"\0"[0]) {
 				wcscat_s(fieldContent, L",");
 			}
-			
+
 			WCHAR wstr[1024];
 			ConvertString8(newName, wstr, 1024 - 1);
 
@@ -508,7 +508,7 @@ void CBookmarkPreferences::OnCheckChange(UINT uNotifyCode, int nId, CWindow wndC
 t_uint32 CBookmarkPreferences::get_state() {
 
 	t_uint32 state = preferences_state::resettable | preferences_state::dark_mode_supported;
-	
+
 	if (HasChanged()) state |= preferences_state::changed;
 	return state;
 }
@@ -571,6 +571,7 @@ void CBookmarkPreferences::apply() {
 	ui_fval = IsDlgButtonChecked(bai_queue_flag.idc) ? QUEUE_RESTORE_TO_FLAG : ui_fval;
 	ui_fval = IsDlgButtonChecked(IDC_QUEUE_FLUSH_FLAG) ? ui_fval | QUEUE_FLUSH_FLAG : ui_fval;
 	uiToCfg(bai_queue_flag, ui_fval);
+
 	uiToCfg(bai_status_flag);
 
 	uiToCfg(bab_edit_mode);
@@ -608,6 +609,7 @@ bool CBookmarkPreferences::HasChanged() {
 	int ui_fval = 0;
 	ui_fval = IsDlgButtonChecked(/*IDC_QUEUE_FLAG*/bai_queue_flag.idc) ? QUEUE_RESTORE_TO_FLAG : ui_fval;
 	ui_fval = IsDlgButtonChecked(IDC_QUEUE_FLUSH_FLAG) ? ui_fval | QUEUE_FLUSH_FLAG : ui_fval;
+
 	result |= isUiChanged(bai_queue_flag, ui_fval);
 
 	result |= isUiChanged(bai_status_flag);
@@ -624,7 +626,7 @@ void CBookmarkPreferences::OnChanged() {
 	titleformat_object::ptr p_script;
 	pfc::string8 titleformat = uGetDlgItemText(m_hWnd, IDC_TITLEFORMAT);
 	static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(p_script, titleformat);
-	
+
 	pfc::string_formatter songDesc;
 	if (!m_playback_control->playback_format_title(NULL, songDesc, p_script, NULL, playback_control::display_level_all)) {
 		songDesc << "(resume playback to generate track description)";

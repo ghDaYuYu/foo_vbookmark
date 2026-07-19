@@ -171,7 +171,6 @@ void bookmark_worker::restore(size_t index) {
 						g_bmAuto.ResetRestoredDummyTime();
 					}
 
-
 					if (bplaylist_item_fault) {
 						playlist_manager_ptr->queue_add_item(track_bm);
 					}
@@ -185,7 +184,7 @@ void bookmark_worker::restore(size_t index) {
 					}
 					else {
 						if ((playlist_manager_ptr->queue_get_count() > 1) && playback_control_ptr->is_playing()) {
-								return;
+							return;
 						}
 					}
 

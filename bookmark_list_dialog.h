@@ -105,7 +105,7 @@ namespace dlg {
 			}
 
 			m_cols_content.resize(colcast(colID::N_COLUMNS));
-			
+
 			parseConfig(nullptr, m_sorted_dir, m_cols_width, m_cols_active, m_last_focus);
 			m_cust_stylemanager->setChangeHandler([&](bool) { this->on_style_change(); });
 
@@ -189,6 +189,8 @@ namespace dlg {
 			bmWorker.restore(index);
 		}
 
+		//context menu and toolbar
+
 		static void addBookmark() {
 
 			CancelUIListEdits();
@@ -220,14 +222,14 @@ namespace dlg {
 			for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
 				(*it)->OnItemsRemoved(pfc::bit_array_true(),g_store.Size());
 			}
-			
+
 			g_store.Write();
 		}
 
 		static void CancelUIListEdits() {
 
 			for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
-				
+
 				if ((*it)->TableEdit_IsActive()) {
 					(*it)->TableEdit_Abort(false);
 				}
@@ -319,7 +321,7 @@ namespace dlg {
 
 				if (headerRct.PtInRect(point)) {
 
-					//Header columns
+					//Column header context menu
 					const int stringlength = 25;
 					for (uint32_t i = 0; i < colcast(colID::N_COLUMNS); i++) {
 
@@ -368,12 +370,6 @@ namespace dlg {
 							m_cols_active[colndx] = !m_cols_active[colndx];
 						}
 						else {
-							//v1.3.1 quick fix: out of bounds
-							//if (!m_cols_active[colndx]) {
-							//	//keep width before disabling
-							//	auto col_ndx = m_cols_content[colndx];
-							//	m_cols_width[col_ndx] = static_cast<int>(m_guiList.GetColumnWidthF(colndx));
-							//}
 							configToUI(true);
 						}
 					}
@@ -411,11 +407,15 @@ namespace dlg {
 					bool bresetable_time_ms = false;
 
 					if (bsinglesel) {
+
 						const bookmark_t rec = g_store.GetItem(isel);
+
 						bresetable_time =  rec.get_time();
 						bresetable_time_ms = static_cast<size_t>(rec.get_time()) != rec.get_time();
+
 						bresetable_playlist = rec.playlist.get_length();
 						bresetable_comment = rec.comment.get_length();
+
 					}
 					
 					bassignable = (bool)icount && (bsinglesel || csel > 1) && bactive_playlist;
@@ -440,6 +440,7 @@ namespace dlg {
 						ID_ASSIGN_PLAYLIST, ID_ASSIGN_SINGLE_TO_PLAYLIST_ACTIVE_SEL,
 						ID_ASSIGN_MULTI_TO_PLAYLIST_ACTIVE_SEL
 					};
+
 					pfc::array_t<HMENU> submenus; submenus.resize(1);
 					pfc::array_t<MENUITEMINFO> submenu_infos; submenu_infos.resize(1);
 					for (size_t n = 0; n < 1; n++) {
@@ -477,8 +478,7 @@ namespace dlg {
 					menu.AppendMenu(MF_SEPARATOR);
 					menu.AppendMenu(MF_STRING | (!bupdatable || !(bool)csel ? MF_DISABLED | MF_GRAYED : 0), ID_DEL, L"&Remove\tDel");
 					menu.AppendMenu(MF_SEPARATOR);
-					//menu.AppendMenu(MF_STRING | (!bupdatable || !(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_CLEAR, L"C&lear all");
-					//menu.AppendMenu(MF_SEPARATOR);
+
 					if (bsinglesel) {
 						menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_CMD_COPY, L"C&opy");
 						menu.AppendMenu(MF_STRING | (!(bool)icount || !m_cols_active[1] ? MF_DISABLED | MF_GRAYED : 0), ID_COPY_BOOKMARK, L"Copy &bookmark");
@@ -486,6 +486,7 @@ namespace dlg {
 						menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_CMD_OPEN_FOLDER, L"Open containing &folder");
 						menu.AppendMenu(MF_SEPARATOR);
 					}
+
 					// Note: Ctrl+A handled automatically by CListControl, no need for us to catch it
 					menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_SELECTALL, L"&Select all\tCtrl+A");
 					menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_SELECTNONE, L"C&lear selection");
@@ -534,15 +535,14 @@ namespace dlg {
 					[[fallthrough]];
 					case ID_RESET_COMMENT: {
 
-						//single playlist alocation
-						bool pl_location_ok = false;
-						pfc::string_formatter pl_songDesc;
-
 						size_t c = m_guiList.GetItemCount();
-						size_t f = selmask.find_first(true, 0, c);
 
 						bool changed = false;
 
+						bool pl_location_ok = false;
+						pfc::string_formatter pl_songDesc;
+
+						size_t f = selmask.find_first(true, 0, c);
 						for (size_t w = f; w < c; w = selmask.find_next(true, w, c)) {
 							bookmark_t rec = g_store.GetItem(w);
 							if (cmd == ID_RESET_TIME) {
@@ -575,6 +575,8 @@ namespace dlg {
 
 								rec.playlist = buffer;
 								rec.guid_playlist = guid;
+
+								// path
 
 								if (cmd == ID_ASSIGN_SINGLE_TO_PLAYLIST_ACTIVE_SEL || cmd == ID_ASSIGN_MULTI_TO_PLAYLIST_ACTIVE_SEL) {
 

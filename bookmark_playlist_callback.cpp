@@ -10,7 +10,7 @@ unsigned bookmark_playlist_callback::get_flags() {
 }
 
 void bookmark_playlist_callback::on_playlists_removing(const bit_array& p_mask, t_size p_old_count, t_size p_new_count) {
-	
+
 	if (!cfg_monitor.get()) {
 		return;
 	}
@@ -93,11 +93,11 @@ void bookmark_playlist_callback::on_playlist_renamed(t_size p_index, const char*
 		});
 
 	while (found_it != masterList.end()) {
-		
+
 		bchanged = true;
-		
+
 		auto pos = std::distance(masterList.begin(), found_it);
-		
+
 		bookmark_t rec = g_store.GetItem(pos);
 		rec.playlist = pfc::string8(p_new_name).c_str();
 		g_store.SetItem(pos, rec);
@@ -110,7 +110,7 @@ void bookmark_playlist_callback::on_playlist_renamed(t_size p_index, const char*
 	}
 	if (bchanged) {
 		for (auto gui : g_guiLists) {
-			
+
 			//mask positions from master list, not get_selected()
 			if (gui->GetSortOrder()) {
 				gui->GetSortOrderedMask(changeMask);

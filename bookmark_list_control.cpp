@@ -47,7 +47,7 @@ namespace dlg {
 			}
 
 			conv << std::setfill('0') << std::setw(2) << minutes << ":" << std::setfill('0') << std::setw(2) << seconds;
-			
+
 			if (cfg_display_ms.get()) {
 				double millsec;
 				if (millsec = std::fmod(rec.get_time(), 60) - seconds) {
@@ -102,7 +102,7 @@ namespace dlg {
 	}
 
 	bool ILOD_BookmarkSource::listRemoveItems(ctx_t ctx, pfc::bit_array const& mask) {
-		
+
 		size_t oldCount = g_store.Size();
 
 		bit_array_bittable sorted_mask((const bit_array_bittable&)mask);
@@ -113,6 +113,7 @@ namespace dlg {
 		//remove from global list
 
 		if (plc->GetSortOrder()) {
+
 			plc->GetSortOrderedMask(sorted_mask);
 			new_mask = sorted_mask;
 		}
@@ -164,8 +165,8 @@ namespace dlg {
 		auto subItemContent = plc->GetColContent(subItem);
 
 		if (subItemContent == colcast(colID::DESC_COL) ||
-			subItemContent == colcast(colID::ELU_COL) ||
-			subItemContent == colcast(colID::TIME_COL)) {
+				subItemContent == colcast(colID::ELU_COL) ||
+				subItemContent == colcast(colID::TIME_COL)) {
 
 			return true;
 		}
@@ -347,8 +348,8 @@ namespace dlg {
 				bookmark_t rec = g_store.GetItem(item);
 
 				rec.set_exact_time(secs);
-				g_store.SetItem(item, rec);
 
+				g_store.SetItem(item, rec);
 				g_store.Write();
 			}
 		}
@@ -387,7 +388,7 @@ namespace dlg {
 				size_t edit_first_col_ndx = SIZE_MAX;
 				size_t edit_desc_col_ndx = SIZE_MAX;
 
-				for (auto w = 0; w < GetColumnCount(); w++) {
+				for (size_t w = 0; w < GetColumnCount(); w++) {
 
 					if (edit_first_col_ndx == SIZE_MAX) {
 						if (m_host->listIsColumnEditable(this, w)) {
@@ -496,13 +497,13 @@ namespace dlg {
 	size_t calc_ordered_focus(size_t ifocus, size_t* order, size_t count) {
 
 		if (ifocus != SIZE_MAX) {
-			
+
 			pfc::array_t<bool> focus_arr; focus_arr.set_size(count);
 			pfc::fill_array_t(focus_arr, 0);
 			focus_arr[ifocus] = true;
 			pfc::reorder_t(focus_arr, order, count);
 
-			for (auto n = 0; n < count; n++)
+			for (size_t n = 0; n < count; n++)
 			{
 				if (focus_arr[n]) {
 					return n;
@@ -617,7 +618,7 @@ namespace dlg {
 
 			pfc::list_t<pfc::string8> permuList; permuList.set_size(tmpList.size());
 
-			for (auto w = 0; w < permuList.get_size(); w++) {
+			for (size_t w = 0; w < permuList.get_size(); w++) {
 				get_sort_expr(tmpList[w], colContentIndex, permuList[w]);
 			}
 
@@ -633,15 +634,17 @@ namespace dlg {
 				permuList.sort_get_permutation_t(field_compare_rev, order.get_ptr());
 			}
 
-			//sort sel
+			//sort selection
 
 			pfc::array_t<bool> sel_arr;
-			selarr.append_fromptr(GetSelectionArray(), tmpList.size());
+
+			sel_arr.append_fromptr(GetSelectionArray(), tmpList.size());
+
 			pfc::reorder_t(sel_arr, order.get_ptr(), tmpList.size());
 
 			bit_array_bittable new_sel(bit_array_false(), sel_arr.get_count());
 
-			for (size_t walk = 0; walk < selarr.get_count(); ++walk) {
+			for (size_t walk = 0; walk < sel_arr.get_count(); ++walk) {
 				new_sel.set(walk, sel_arr[walk]);
 			}
 
@@ -662,7 +665,7 @@ namespace dlg {
 				}
 			}
 
-			//todo: mod master list type, stable sort
+			//todo: list type
 			//sort list
 
 			std::/*stable_*/sort(tmpList.begin(), tmpList.end(),

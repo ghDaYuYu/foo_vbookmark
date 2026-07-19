@@ -53,13 +53,13 @@ void add_rec(std::vector<json_t*> &vjson, const std::vector<pfc::string8>& vlbl,
 	std::vector<pfc::string8> vrec = {
 
 		pfc::print_guid(rec.guid_bm).get_ptr(),        //guid_bm
-		std::to_string(rec.get_time()).c_str(),        //time
+		std::to_string(rec.get_time()).c_str(),    //time
 		rec.desc.get_ptr(),                            //desc
-		rec.get_name(false).get_ptr(),                 //name
+		rec.get_name(false).get_ptr(),          //name
 		rec.playlist.get_ptr(),                        //playlist
 		pfc::print_guid(rec.guid_playlist).get_ptr(),  //guid
 		rec.path.get_ptr(),                            //path
-		std::to_string(rec.subsong).c_str(),           //subsong
+		std::to_string(rec.subsong).c_str(),       //subsong
 		rec.comment.get_ptr(),                         //comment
 		rec.date.get_ptr()                             //date
 	};

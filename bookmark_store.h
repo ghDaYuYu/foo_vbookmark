@@ -6,8 +6,7 @@
 #include <vector>
 
 class bookmark_store {
-private:
-	//..
+
 public:
 	bookmark_store();
 	~bookmark_store();
@@ -23,12 +22,10 @@ public:
 	size_t Size() {
 		return m_masterList.size();
 	};
-	
+
 	bool Initialize() { 
 		m_persist.readDataFileJSON(m_masterList); /*todo*/return true;
 	}
-
-	//todo
 
 	const bookmark_t _getItem(size_t pos) {
 		return m_masterList.at(pos);

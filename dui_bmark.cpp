@@ -58,6 +58,7 @@ namespace {
 			}
 		}
 	};
+
 	// S T A T I C   D U I - E L E M E N T
 
 	class dui_mark_impl : public ui_element_impl_withpopup<dui_bmark> {};

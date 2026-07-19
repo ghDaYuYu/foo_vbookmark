@@ -48,7 +48,7 @@ public:
 	bool checkDummyIsRadio(const pfc::string8 path) {
 		return (bool)dummy.isRadio(path);
 	}
-	
+
 	bool fetchHelloRadioStationName(pfc::string8 &out);
 
 	bool CheckAutoFilter();
