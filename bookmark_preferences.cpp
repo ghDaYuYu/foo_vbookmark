@@ -17,6 +17,7 @@
 
 #include "bookmark_core.h"
 #include "bookmark_automatic.h"
+#include "bookmark_list_control.h"
 
 static const int stringlength = 256;
 
@@ -314,7 +315,7 @@ private:
 
 	boxAndBool_t bab_edit_mode = { IDC_EDIT_MODE, &cfg_edit_mode, default_cfg_edit_mode };
 
-	boxAndInt_t bai_misc_flag = { IDC_MISC_FLAG, &cfg_misc_flag, default_cfg_misc_flag };
+	boxAndInt_t bai_misc_flag = { IDC_MISC_FLAG_ENTER_KEY_DOWN, &cfg_misc_flag, default_cfg_misc_flag };
 
 };
 
@@ -382,7 +383,8 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow, LPARAM) {
 
 	cfgToUi(bab_edit_mode);
 
-	cfgToUi(bai_misc_flag);
+	cfgToUi(bai_misc_flag, MISC_FLAG_EDIT_ENTER_KEY_ADV, bai_misc_flag.idc);
+	cfgToUi(bai_misc_flag, MISC_FLAG_INSTANT_WRITE_ON_EDITS, IDC_MISC_FLAG_WRITE_ON_EDITS);
 
 	//static header
 
@@ -537,7 +539,8 @@ void CBookmarkPreferences::reset() {
 
 	defToUi(bab_edit_mode);
 
-	defToUi(bai_misc_flag);
+	defToUi(bai_misc_flag, MISC_FLAG_EDIT_ENTER_KEY_ADV, /*IDC_MISC_FLAG_ENTER_KEY_DOWN*/bai_misc_flag.idc);
+	defToUi(bai_misc_flag, MISC_FLAG_INSTANT_WRITE_ON_EDITS, IDC_MISC_FLAG_WRITE_ON_EDITS);
 
 	OnChanged();
 }
@@ -568,16 +571,17 @@ void CBookmarkPreferences::apply() {
 	uiToCfg(bab_monitor);
 
 	int ui_fval = 0;
-	ui_fval = IsDlgButtonChecked(bai_queue_flag.idc) ? QUEUE_RESTORE_TO_FLAG : ui_fval;
+	ui_fval = IsDlgButtonChecked(/*IDC_QUEUE_FLAG*/bai_queue_flag.idc) ? QUEUE_RESTORE_TO_FLAG : ui_fval;
 	ui_fval = IsDlgButtonChecked(IDC_QUEUE_FLUSH_FLAG) ? ui_fval | QUEUE_FLUSH_FLAG : ui_fval;
 	uiToCfg(bai_queue_flag, ui_fval);
 
 	uiToCfg(bai_status_flag);
-
 	uiToCfg(bab_edit_mode);
 
-	uiToCfg(bai_misc_flag);
-
+	ui_fval = 0;
+	ui_fval = IsDlgButtonChecked(/*IDC_MISC_FLAG_ENTER_KEY_DOWN*/bai_misc_flag.idc) ? MISC_FLAG_EDIT_ENTER_KEY_ADV : ui_fval;
+	ui_fval = IsDlgButtonChecked(IDC_MSC_FLAG_WRITE_ON_EDITS) ? ui_fval | MISC_FLAG_INSTANT_WRITE_ON_EDITS : ui_fval;
+	uiToCfg(bai_misc_flag, ui_fval);
 
 	if (bneedReload) {
 		for (auto gui : glb::g_guiLists) {
@@ -616,7 +620,11 @@ bool CBookmarkPreferences::HasChanged() {
 
 	result |= isUiChanged(bab_edit_mode);
 
-	result |= isUiChanged(bai_misc_flag);
+	ui_fval = 0;
+	ui_fval = IsDlgButtonChecked(/*IDC_MISC_FLAG_ENTER_KEY_DOWN*/bai_misc_flag.idc) ? MISC_FLAG_EDIT_ENTER_KEY_ADV : ui_fval;
+	ui_fval = IsDlgButtonChecked(IDC_MISC_FLAG_WRITE_ON_EDITS) ? ui_fval | MISC_FLAG_INSTANT_WRITE_ON_EDITS : ui_fval;
+
+	result |= isUiChanged(bai_misc_flag, ui_fval);
 
 	return result;
 }

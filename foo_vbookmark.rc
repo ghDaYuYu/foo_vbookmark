@@ -85,11 +85,14 @@ BEGIN
     CONTROL         "Restore bookmarks to queue (seek time only applies to empty queues)",IDC_QUEUE_FLAG,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,215,263,10
     CONTROL         "Flush queue",IDC_QUEUE_FLUSH_FLAG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,25,228,59,10
-    CONTROL         "Enter key moves down",IDC_MISC_FLAG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,25,256,163,10
+    CONTROL         "Enter key moves down",IDC_MISC_FLAG_ENTER_KEY_DOWN,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,25,256,91,10
     CONTROL         "Edit mode",IDC_EDIT_MODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,243,51,10
     CONTROL         "Verbose console",IDC_VERBOSE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,270,75,10
     CONTROL         "Callback monitor (required for auto-creation)",IDC_MONITOR,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,114,270,164,10
+    CONTROL         "Instant write bookmarks to disk",IDC_MISC_FLAG_WRITE_ON_EDITS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,160,243,116,10
 END
 
 IDD_BOOKMARK_DIALOG DIALOGEX 0, 0, 192, 176

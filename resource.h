@@ -10,7 +10,7 @@
 #define IDC_MONITOR                     1003
 #define IDC_AUTOSAVE_EXIT               1016
 #define IDC_STATUS_FLAG                 1017
-#define IDC_MISC_FLAG                   1018
+#define IDC_MISC_FLAG_ENTER_KEY_DOWN    1018
 #define IDC_TITLEFORMAT                 1021
 #define IDC_PREVIEW                     1022
 #define IDC_BOOKMARKLIST                1023
@@ -31,6 +31,7 @@
 #define IDC_DISPLAY_MS                  1040
 #define IDC_STATIC_DISPLAY_MS           1041
 #define IDC_EDIT_MODE                   1042
+#define IDC_MISC_FLAG_WRITE_ON_EDITS    1043
 
 // Next default values for new objects
 // 
@@ -38,7 +39,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        113
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1043
+#define _APS_NEXT_CONTROL_VALUE         1044
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
