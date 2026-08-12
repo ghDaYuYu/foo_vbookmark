@@ -39,6 +39,8 @@ static const GUID guid_cfg_autosave_filter_newtrack = { 0x75728bc2, 0x6955, 0x4e
 static const GUID guid_cfg_verbose = { 0x354baaa6, 0x7bbb, 0x40df, { 0xbf, 0xb8, 0x8b, 0x76, 0xc, 0xbd, 0x9d, 0xd0 } };
 static const GUID guid_cfg_monitor = { 0xd36b1b6d, 0x4a55, 0x48c1, { 0xab, 0x46, 0x69, 0x14, 0xb5, 0x5, 0x2f, 0x7f } };
 
+static const GUID guid_cfg_lapse = { 0x84fb3165, 0x83eb, 0x4e17, { 0xa1, 0xa4, 0x5c, 0x6, 0x2a, 0x1c, 0x38, 0x26 } };
+
 // {E0B79D39-269C-49ED-8892-ED46DD5F3445}
 static const GUID guid_cfg_queue_flag = { 0xe0b79d39, 0x269c, 0x49ed, { 0x88, 0x92, 0xed, 0x46, 0xdd, 0x5f, 0x34, 0x45 } };
 
@@ -50,6 +52,9 @@ static const GUID guid_cfg_enter_advance = { 0x82c85ae9, 0x51d4, 0x45f4, { 0x8d,
 
 // {452AC946-F849-4C79-9868-01C60F0421E6}
 static const GUID guid_cfg_misc_flag = { 0x452ac946, 0xf849, 0x4c79, { 0x98, 0x68, 0x1, 0xc6, 0xf, 0x4, 0x21, 0xe6 } };
+
+// {B73E6AAA-AFC4-4C24-BC00-85BE8371586F}
+static const GUID guid_cfg_lapse_flag ={ 0xb73e6aaa, 0xafc4, 0x4c24, { 0xbc, 0x0, 0x85, 0xbe, 0x83, 0x71, 0x58, 0x6f } };
 
 // defaults
 
@@ -68,12 +73,16 @@ static const bool default_cfg_autosave_on_quit = false;
 static const bool default_cfg_verbose = false;
 static const bool default_cfg_monitor = true;
 
+static const pfc::string8 default_cfg_lapse = "10";
+
 static const int default_cfg_queue_flag = 0;
 static const int default_cfg_status_flag = 0;
 
 static const bool default_cfg_edit_mode = false;
 
 static const int default_cfg_misc_flag = 0;
+
+static const int default_cfg_lapse_flag = 0;
 
 // cfg_var
 
@@ -92,12 +101,16 @@ cfg_bool cfg_autosave_on_quit(guid_cfg_autosave_on_quit, default_cfg_autosave_on
 cfg_bool cfg_verbose(guid_cfg_verbose, default_cfg_verbose);
 cfg_bool cfg_monitor(guid_cfg_monitor, default_cfg_monitor);
 
+cfg_string cfg_lapse(guid_cfg_lapse, default_cfg_lapse);
+
 cfg_int cfg_queue_flag(guid_cfg_queue_flag, default_cfg_queue_flag);
 cfg_int cfg_status_flag(guid_cfg_status_flag, default_cfg_status_flag);
 
 cfg_bool cfg_edit_mode(guid_cfg_enter_advance, default_cfg_edit_mode);
 
 cfg_int cfg_misc_flag(guid_cfg_misc_flag, default_cfg_misc_flag);
+
+cfg_int cfg_lapse_flag(guid_cfg_lapse_flag, default_cfg_lapse_flag);
 
 struct boxAndBool_t {
 	int idc;
@@ -126,10 +139,15 @@ const CDialogResizeHelper::Param resize_params[] = {
 	{IDC_EDIT_MODE, 0,0,1,0},
 	{IDC_AUTOSAVE_RADIO_TRACK, 1,0,1,0},
 	{IDC_AUTOSAVE_RADIO_COMMENT_ST, 1,0,1,0},
+	{IDC_LAPSE_FLAG, 1,0,1,0},
+	{IDC_LAPSE, 1,0,1,0},
 	{IDC_DISPLAY_MS, 1,0,1,0},
 	{IDC_STATIC_DISPLAY_MS, 1,0,1,0},
+	{IDC_MISC_FLAG_WRITE_ON_EDITS, 1,0,1,0},
 	{IDC_MONITOR, 1,0,1,0},
 };
+
+using namespace glb;
 
 class CBookmarkPreferences : public CDialogImpl<CBookmarkPreferences>,
 	public preferences_page_instance {
@@ -142,7 +160,7 @@ public:
 	}
 
 	~CBookmarkPreferences() { 
-		glb::g_wnd_bookmark_pref = NULL;
+		g_wnd_bookmark_pref = NULL;
 		m_staticPrefHeader.Detach();
 	}
 
@@ -158,8 +176,8 @@ public:
 		COMMAND_CODE_HANDLER_EX(EN_CHANGE, OnEditChange)
 		COMMAND_CODE_HANDLER_EX(CBN_SELCHANGE, OnComboChange)
 		COMMAND_CODE_HANDLER_EX(BN_CLICKED, OnCheckChange)
-		MESSAGE_HANDLER_SIMPLE(glb::UMSG_NEW_TRACK, OnNewTrackMessage)
-		MESSAGE_HANDLER_SIMPLE(glb::UMSG_PAUSED, OnPaused)
+		MESSAGE_HANDLER_SIMPLE(UMSG_NEW_TRACK, OnNewTrackMessage)
+		MESSAGE_HANDLER_SIMPLE(UMSG_PAUSED, OnPaused)
 	END_MSG_MAP()
 
 
@@ -300,6 +318,8 @@ private:
 	boxAndBool_t bab_display_ms = { IDC_DISPLAY_MS, &cfg_display_ms, default_cfg_display_ms };
 	ectrlAndString_t eat_as_newtrack_playlists = { IDC_AUTOSAVE_TRACK_FILTER, &cfg_autosave_newtrack_playlists, default_cfg_autosave_newtrack_playlists };
 
+	ectrlAndString_t eat_lapse = { IDC_LAPSE, &cfg_lapse, default_cfg_lapse };
+
 	boxAndBool_t bab_as_newtrack = { IDC_AUTOSAVE_TRACK, &cfg_autosave_newtrack, default_cfg_autosave_newtrack };
 	boxAndBool_t bab_as_focus_newtrack = { IDC_AUTOSAVE_FOCUS_TRACK, &cfg_autosave_focus_newtrack, default_cfg_autosave_focus_newtrack };
 	boxAndBool_t bab_as_radio_newtrack = { IDC_AUTOSAVE_RADIO_TRACK, &cfg_autosave_radio_newtrack, default_cfg_autosave_radio_newtrack };
@@ -316,6 +336,8 @@ private:
 	boxAndBool_t bab_edit_mode = { IDC_EDIT_MODE, &cfg_edit_mode, default_cfg_edit_mode };
 
 	boxAndInt_t bai_misc_flag = { IDC_MISC_FLAG_ENTER_KEY_DOWN, &cfg_misc_flag, default_cfg_misc_flag };
+
+	boxAndInt_t bai_lapse_flag = { IDC_LAPSE_FLAG, &cfg_lapse_flag, default_cfg_lapse_flag };
 
 };
 
@@ -357,7 +379,7 @@ void InitDateCombo(HWND hwndParent, UINT idc_date, pfc::string8 strval) {
 
 BOOL CBookmarkPreferences::OnInitDialog(CWindow, LPARAM) {
 
-	glb::g_wnd_bookmark_pref = m_hWnd;
+	g_wnd_bookmark_pref = m_hWnd;
 
 	InitDateCombo(m_hWnd, eat_date.idc, eat_date.cfg->get_value());
 
@@ -365,6 +387,8 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow, LPARAM) {
 	cfgToUi(eat_date);
 	cfgToUi(bab_display_ms);
 	cfgToUi(eat_as_newtrack_playlists);
+
+	cfgToUi(eat_lapse);
 
 	cfgToUi(bab_as_exit);
 	cfgToUi(bab_as_newtrack);
@@ -385,6 +409,8 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow, LPARAM) {
 
 	cfgToUi(bai_misc_flag, MISC_FLAG_EDIT_ENTER_KEY_ADV, bai_misc_flag.idc);
 	cfgToUi(bai_misc_flag, MISC_FLAG_INSTANT_WRITE_ON_EDITS, IDC_MISC_FLAG_WRITE_ON_EDITS);
+
+	cfgToUi(bai_lapse_flag, LAPSE_FLAG_ENABLED, IDC_LAPSE_FLAG);
 
 	//static header
 
@@ -418,7 +444,7 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow, LPARAM) {
 	//dark mode
 	m_dark.AddDialogWithControls(*this);
 
-	return FALSE;
+	return TRUE;
 }
 
 void CBookmarkPreferences::OnEditChange(UINT uNotifyCode, int nId, CWindow wndCtl) {
@@ -439,13 +465,6 @@ void CBookmarkPreferences::OnComboChange(UINT uNotifyCode, int nId, CWindow wndC
 
 	char buffer[DATE_BUFFER_SIZE];
 	std::strftime(buffer, DATE_BUFFER_SIZE, strFormat, &tm);
-
-
-	wchar_t fieldContent[1 + (stringlength * 2)];
-
-	if (fieldContent[0] != L"\0"[0]) {
-		auto dbg = 0;
-	}
 
 	WCHAR wstr[stringlength];
 	ConvertString8(buffer, wstr, stringlength - 1);
@@ -522,6 +541,8 @@ void CBookmarkPreferences::reset() {
 	defToUi(bab_display_ms);
 	defToUi(eat_as_newtrack_playlists);
 
+	defToUi(eat_lapse);
+
 	defToUi(bab_as_exit);
 	defToUi(bab_as_newtrack);
 	defToUi(bab_as_focus_newtrack);
@@ -542,6 +563,8 @@ void CBookmarkPreferences::reset() {
 	defToUi(bai_misc_flag, MISC_FLAG_EDIT_ENTER_KEY_ADV, /*IDC_MISC_FLAG_ENTER_KEY_DOWN*/bai_misc_flag.idc);
 	defToUi(bai_misc_flag, MISC_FLAG_INSTANT_WRITE_ON_EDITS, IDC_MISC_FLAG_WRITE_ON_EDITS);
 
+	defToUi(bai_lapse_flag, LAPSE_FLAG_ENABLED, IDC_LAPSE_FLAG);
+
 	OnChanged();
 }
 
@@ -554,6 +577,15 @@ void CBookmarkPreferences::apply() {
 	uiToCfg(bab_display_ms);
 	uiToCfg(eat_as_newtrack_playlists);
 
+	pfc::string8 buffer;
+	buffer = uGetDlgItemText(m_hWnd, eat_lapse.idc);
+	if (atoi(buffer) >= 1 && atoi(buffer) <= 60) {
+		uiToCfg(eat_lapse);
+	}
+	else {
+		cfgToUi(eat_lapse);
+	}
+
 	uiToCfg(bab_as_exit);
 	uiToCfg(bab_as_newtrack);
 	uiToCfg(bab_as_focus_newtrack);
@@ -563,7 +595,7 @@ void CBookmarkPreferences::apply() {
 
 	//refresh dummy
 	if (bab_as_newtrack.cfg->get()) {
-		glb::g_bmAuto.updateDummy();
+		g_bmAuto.updateDummy();
 	}
 
 	uiToCfg(bab_as_filter_newtrack);
@@ -580,11 +612,15 @@ void CBookmarkPreferences::apply() {
 
 	ui_fval = 0;
 	ui_fval = IsDlgButtonChecked(/*IDC_MISC_FLAG_ENTER_KEY_DOWN*/bai_misc_flag.idc) ? MISC_FLAG_EDIT_ENTER_KEY_ADV : ui_fval;
-	ui_fval = IsDlgButtonChecked(IDC_MSC_FLAG_WRITE_ON_EDITS) ? ui_fval | MISC_FLAG_INSTANT_WRITE_ON_EDITS : ui_fval;
+	ui_fval = IsDlgButtonChecked(IDC_MISC_FLAG_WRITE_ON_EDITS) ? ui_fval | MISC_FLAG_INSTANT_WRITE_ON_EDITS : ui_fval;
 	uiToCfg(bai_misc_flag, ui_fval);
 
+	ui_fval = 0;
+	ui_fval = IsDlgButtonChecked(IDC_LAPSE_FLAG) ? ui_fval | LAPSE_FLAG_ENABLED: ui_fval;
+	uiToCfg(bai_lapse_flag, ui_fval);
+
 	if (bneedReload) {
-		for (auto gui : glb::g_guiLists) {
+		for (auto gui : g_guiLists) {
 			gui->ReloadItems(bit_array_true());
 		}
 	}
@@ -599,6 +635,8 @@ bool CBookmarkPreferences::HasChanged() {
 	result |= isUiChanged(eat_date);
 	result |= isUiChanged(bab_display_ms);
 	result |= isUiChanged(eat_as_newtrack_playlists);
+
+	result |= isUiChanged(eat_lapse);
 
 	result |= isUiChanged(bab_as_exit);
 	result |= isUiChanged(bab_as_newtrack);
@@ -625,6 +663,11 @@ bool CBookmarkPreferences::HasChanged() {
 	ui_fval = IsDlgButtonChecked(IDC_MISC_FLAG_WRITE_ON_EDITS) ? ui_fval | MISC_FLAG_INSTANT_WRITE_ON_EDITS : ui_fval;
 
 	result |= isUiChanged(bai_misc_flag, ui_fval);
+
+	ui_fval = 0;
+	ui_fval = IsDlgButtonChecked(IDC_LAPSE_FLAG) ? ui_fval | LAPSE_FLAG_ENABLED : ui_fval;
+
+	result |= isUiChanged(bai_lapse_flag, ui_fval);
 
 	return result;
 }
