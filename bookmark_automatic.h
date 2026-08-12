@@ -70,12 +70,11 @@ public:
 		dummy.comment = tmp.comment;
 	}
 
-	void resetDummyLocChecks() {
-		dummy.need_loc_retries = 0;
-		dummy.need_playlist = true;
+	void resetDummyAll() {
+		m_updatePlaylistLapseStart = DBL_MAX;
+		dummy.reset();
 	}
 
-	void resetDummyAll() { dummy.reset(); }
 	void setDummyTime(double time) { dummy.set_time(time); }
 
 	bool isRestoredDummy(const bookmark_t& bm);
@@ -83,12 +82,18 @@ public:
 
 	void refresh_ui(bool bselect, bool bensure_visible, const std::vector<bookmark_t>& masterList, std::list< dlg::CListControlBookmark*> guiLists);
 
+	void Reset_Update_For_Radio() {
+		m_updatePlaylist = true;
+		m_updatePlaylistLapseStart = DBL_MAX;
+	}
+
 private:
 
 	bookmark_t dummy;
 	bookmark_t restored_dummy;
 	bool m_updatePlaylist = true;
-
+	double m_updatePlaylistLapse = 0.0;
+	double m_updatePlaylistLapseStart = DBL_MAX;
 	titleformat_object::ptr m_pttf_title = nullptr;
 };
 

@@ -16,6 +16,12 @@ void bookmark_automatic::updateDummyTime() {
 
 	dummy.set_rt_time(playback_control::get()->playback_get_position());
 
+	if (m_updatePlaylistLapseStart == DBL_MAX) {
+		m_updatePlaylistLapseStart = dummy.get_time();
+	}
+
+	m_updatePlaylistLapse = dummy.get_time() - m_updatePlaylistLapseStart;
+
 	if (m_updatePlaylist) {
 		m_updatePlaylist = false;
 
@@ -64,6 +70,19 @@ void bookmark_automatic::updateDummyTime() {
 				return;
 			}
 
+			if (is_cfg_LapseEnabled) {
+				if(m_updatePlaylistLapse < get_cfg_lapse()) {
+					//rev. rename
+					m_updatePlaylist = true;
+					return;
+				}
+				else {
+					if (m_updatePlaylistLapseStart != DBL_MAX) {
+						dummy.set_rt_time(m_updatePlaylistLapseStart);
+					}
+				}
+			}
+
 			if (bcan_autosave_newtrack) {
 				// AUTO - CREATE
 				bool bres = upgradeDummy(g_guiLists);
@@ -71,8 +90,8 @@ void bookmark_automatic::updateDummyTime() {
 			}
 		}
 		else {
-
-			if (dummy.need_loc_retries > LOC_RETRIES) {
+			bool blapse_enabled = is_cfg_LapseEnabled();
+			if ((blapse_enabled && m_updatePlaylistLapse > get_cfg_lapse()) || (!blapse_enabled && dummy.need_loc_retries > LOC_RETRIES)) {
 				FB2K_console_print_v("<update time>: giving up item location requests");
 
 				//give up
@@ -86,6 +105,13 @@ void bookmark_automatic::updateDummyTime() {
 				}
 
 				if (bcan_autosave_newtrack) {
+
+					if (is_cfg_LapseEnabled()) {
+						if (m_updatePlaylistLapseStart != DBL_MAX) {
+							dummy.set_rt_time(m_updatePlaylistLapseStart);
+						}
+					}
+
 					// AUTO - CREATE
 					bool bres = upgradeDummy(g_guiLists);
 				}
@@ -316,7 +342,7 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 			if (dummy.need_playlist || (brevtime && brevpath && brevradio)) {
 
 				if (!dummy.need_playlist && (brevtime && brevpath)) {
-					FB2K_console_print_v("Skipping duplicated bookmark: ", dummy.path);
+					FB2K_console_print_e("Skipping duplicated bookmark: ", dummy.path);
 				}
 
 				// nothing to do

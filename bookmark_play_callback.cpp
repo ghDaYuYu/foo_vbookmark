@@ -69,6 +69,11 @@ namespace {
 
 		bool bcan_autosave_newtrack = cfg_autosave_newtrack.get() && (!g_bmAuto.checkDummyIsRadio() || cfg_autosave_radio_newtrack.get());
 
+		if (is_cfg_LapseEnabled() && nt.isRadio()) {
+			bcan_autosave_newtrack = false;
+			g_bmAuto.Reset_Update_For_Radio();
+		}
+
 		if (bcan_autosave_newtrack) {
 			if (g_bmAuto.upgradeDummy(g_guiLists)) {
 				if (is_cfg_Bookmarking()) {
