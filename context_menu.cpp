@@ -7,10 +7,12 @@
 //ref. to bookmark_dialog.cpp
 void bbookmarkHook_store();
 void bbookmarkHook_restore();
+void bbookmarkHook_restoreActivePlaylist(size_t last_played);
 void bbookmarkHook_clear();
 
 bool bbookmarkHook_canStore();
 bool bbookmarkHook_canRestore();
+bool bbookmarkHook_canRestoreActivePlaylist(size_t &last_played);
 bool bbookmarkHook_canClear();
 
 unsigned contextmenu_item_foo_vb::get_num_items()
@@ -123,14 +125,9 @@ bool contextmenu_item_node_root_popup_vb::get_display_data(pfc::string_base& p_o
 		return false;
 	}
 
-	metadb_handle_ptr mhp;
-	auto np = playback_control_v3::get()->get_now_playing(mhp);
-	if (p_data.get_item(0) != mhp) {
-		return false;
-	}
-
 	if (!(pfc::guid_equal(p_caller, contextmenu_item::caller_active_playlist_selection)
-		|| pfc::guid_equal(p_caller, contextmenu_item::caller_now_playing))) {
+		|| pfc::guid_equal(p_caller, contextmenu_item::caller_active_playlist) ||
+		pfc::guid_equal(p_caller, contextmenu_item::caller_now_playing))) {
 		return false;
 	}
 
@@ -141,7 +138,7 @@ bool contextmenu_item_node_root_popup_vb::get_display_data(pfc::string_base& p_o
 
 t_size contextmenu_item_node_root_popup_vb::get_children_count()
 {
-	return 2 + 1; // add bookmark + separator + preference page
+	return 3 + 1; // add bookmark + restore latest from active + separator + preference page
 }
 
 contextmenu_item_node* contextmenu_item_node_root_popup_vb::get_child(t_size p_index)
@@ -154,6 +151,9 @@ contextmenu_item_node* contextmenu_item_node_root_popup_vb::get_child(t_size p_i
 		else {
 			if (p_index == 0) {
 				return new contextmenu_item_node_add_vb();
+			}
+			else if (p_index == 1) {
+				return new contextmenu_item_node_restore_active();
 			}
 			else {
 				return new contextmenu_item_node_prop_vb();
@@ -210,14 +210,21 @@ contextmenu_item_node_add_vb::contextmenu_item_node_add_vb()
 
 bool contextmenu_item_node_add_vb::get_display_data(pfc::string_base& p_out, unsigned& p_displayflags, metadb_handle_list_cref p_data, const GUID& p_caller)
 {
-	p_displayflags = 0;
-	p_out = "Add bookmark";
+	metadb_handle_ptr mhp;
+	auto np = playback_control_v3::get()->get_now_playing(mhp);
+	if (p_data.get_item(0) != mhp) {
+		p_displayflags = FLAG_DISABLED_GRAYED;
+	}
+	else {
+		p_displayflags = 0;
+	}
+	p_out = "Add Now Playing bookmark";
 	return true;
 }
 
 bool contextmenu_item_node_add_vb::get_description(pfc::string_base& p_out)
 {
-	p_out = "Add bookmark";
+	p_out = "Add Now Playing bookmark";
 	return true;
 }
 
@@ -236,5 +243,50 @@ bool contextmenu_item_node_add_vb::is_mappable_shortcut()
 {
 	return true;
 }
+
+//Restore active
+contextmenu_item_node_restore_active::contextmenu_item_node_restore_active()
+{ }
+
+bool contextmenu_item_node_restore_active::get_display_data(pfc::string_base& p_out, unsigned& p_displayflags, metadb_handle_list_cref p_data, const GUID& p_caller)
+{
+	metadb_handle_ptr mhp;
+	auto np = playback_control_v3::get()->get_now_playing(mhp);
+	size_t last_played = SIZE_MAX;
+	if (!bbookmarkHook_canRestoreActivePlaylist(last_played)) {
+		p_displayflags = FLAG_DISABLED_GRAYED;
+	}
+	else {
+		p_displayflags = 0;
+	}
+	p_displayflags = 0;
+	p_out = "Restore last active playlist bookmark";
+	return true;
+}
+
+bool contextmenu_item_node_restore_active::get_description(pfc::string_base& p_out)
+{
+	p_out = "Restore last active playlist bookmark";
+	return true;
+}
+
+void contextmenu_item_node_restore_active::execute(metadb_handle_list_cref p_data, const GUID& p_caller)
+{
+	size_t last_played = SIZE_MAX;
+	if (bbookmarkHook_canRestoreActivePlaylist(last_played)) {
+		bbookmarkHook_restoreActivePlaylist(last_played);
+	}
+}
+
+GUID contextmenu_item_node_restore_active::get_guid()
+{
+	return guid_ctx_menu_node_restore_playlist;
+}
+
+bool contextmenu_item_node_restore_active::is_mappable_shortcut()
+{
+	return true;
+}
+
 //factory
 static contextmenu_item_factory_t<contextmenu_item_foo_vb> g_contextmenu_item_foo_vb_factory;

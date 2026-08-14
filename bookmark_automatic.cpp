@@ -70,7 +70,7 @@ void bookmark_automatic::updateDummyTime() {
 				return;
 			}
 
-			if (is_cfg_LapseEnabled) {
+			if (is_cfg_LapseEnabled()) {
 				if(m_updatePlaylistLapse < get_cfg_lapse()) {
 					//rev. rename
 					m_updatePlaylist = true;

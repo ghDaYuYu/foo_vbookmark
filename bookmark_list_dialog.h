@@ -184,9 +184,33 @@ namespace dlg {
 
 		// Restores bookmark identified by index
 
-		static void restoreBookmark(size_t index) {
+		static void restoreBookmark(size_t index, bool focus = false) {
 			bookmark_worker bmWorker;
 			bmWorker.restore(index);
+
+			if (focus) {
+				for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
+					size_t item = (std::min)((int)index, (int)g_store.Size() - 1);
+					bit_array_bittable changeMask(bit_array_false(), g_primaryGuiList->GetItemCount());
+					const std::vector<bookmark_t> masterList = g_store.GetMasterList();
+					changeMask.set(index, true);
+					size_t new_pos = index;
+					if ((*it)->GetSortOrder()) {
+						(*it)->GetSortOrderedMask(changeMask);
+						for (size_t w = 0; w < changeMask.size(); w++) {
+							if (changeMask[w]) {
+								index = w;
+								break;
+							}
+						}
+					}
+					(*it)->SelectNone();
+					(*it)->EnsureItemVisible(index, false);
+					(*it)->SetFocusItem(index);
+					(*it)->OnItemsInserted(index, 1, true);
+					(*it)->ReloadItem(index);
+				}
+			}
 		}
 
 		//context menu and toolbar
@@ -243,6 +267,21 @@ namespace dlg {
 		static bool canRestore() {
 			return (g_primaryGuiList && g_primaryGuiList->GetSingleSel() != ~0)
 				|| g_store.Size();
+		}
+
+		static bool canRestoreActivePlaylist(size_t &ndx_last_played) {
+			ndx_last_played = SIZE_MAX;
+			size_t act_playlist = playlist_manager_v6::get()->get_active_playlist();
+			if (act_playlist != SIZE_MAX) {
+				GUID plgui = playlist_manager_v6::get()->playlist_get_guid(act_playlist);
+				auto bmlist = g_store.GetMasterList();
+				auto it = std::find_if(bmlist.rbegin(), bmlist.rend(), [plgui](const bookmark_t& bm) {
+					return pfc::guid_equal(bm.guid_playlist, plgui); });
+				if (it != bmlist.rend()) {
+					ndx_last_played = bmlist.size() - std::distance(bmlist.rbegin(), it) - 1;
+				}
+			}
+			return ndx_last_played != SIZE_MAX;
 		}
 
 		static bool canClear() {
