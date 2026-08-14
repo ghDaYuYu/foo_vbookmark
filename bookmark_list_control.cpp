@@ -18,6 +18,31 @@ namespace dlg {
 		return g_store.Size();
 	}
 
+	inline pfc::string8 make_time_col(bookmark_t rec, bool mill) {
+
+		std::ostringstream conv;
+		int hours = (int)(rec.get_time() / 3600);
+		int minutes = (int)(std::fmod(rec.get_time(), 3600) / 60);
+		int seconds = (int)(std::fmod(rec.get_time(), 60));
+
+		if (hours != 0) {
+			conv << hours << ":";
+		}
+
+		conv << std::setfill('0') << std::setw(2) << minutes << ":" << std::setfill('0') << std::setw(2) << seconds;
+
+		if (mill) {
+			double millsec;
+			if (millsec = std::fmod(rec.get_time(), 60) - seconds) {
+				conv << std::to_string(millsec).substr(1, 4);
+			}
+			else {
+				conv << ".000";
+			}
+		}
+		return conv.str().c_str();
+	}
+
 	pfc::string8 ILOD_BookmarkSource::listGetSubItemText(ctx_t ctx, size_t item, size_t subItem) {
 
 		CListControlBookmark* plc = (CListControlBookmark*)(ctx);
@@ -36,29 +61,8 @@ namespace dlg {
 		case colID::ITEM_NUMBER:
 			return std::to_string(item + 1).c_str();
 		case colID::TIME_COL:
-		{
-			std::ostringstream conv;
-			int hours = (int)(rec.get_time() / 3600);
-			int minutes = (int)(std::fmod(rec.get_time(), 3600) / 60);
-			int seconds = (int)(std::fmod(rec.get_time(), 60));
+			return make_time_col(rec, cfg_display_ms.get());
 
-			if (hours != 0) {
-				conv << hours << ":";
-			}
-
-			conv << std::setfill('0') << std::setw(2) << minutes << ":" << std::setfill('0') << std::setw(2) << seconds;
-
-			if (cfg_display_ms.get()) {
-				double millsec;
-				if (millsec = std::fmod(rec.get_time(), 60) - seconds) {
-					conv << std::to_string(millsec).substr(1, 4);
-				}
-				else {
-					conv << ".000";
-				}
-			}
-			return conv.str().c_str();
-		}
 		case colID::DESC_COL:
 			return rec.get_name(true); //rec.desc.c_str();
 		case colID::PLAYLIST_COL:
@@ -474,7 +478,7 @@ namespace dlg {
 	void get_sort_expr(const bookmark_t& bm, size_t colcontent, pfc::string8 & out) {
 
 		if (colcontent == colcast(colID::TIME_COL)) {
-			out = std::to_string(bm.get_time()).c_str();
+			out = make_time_col(bm, true);
 		}
 		else {
 			out = get_rec_col_content(bm, colcontent);
