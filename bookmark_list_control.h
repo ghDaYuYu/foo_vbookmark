@@ -160,16 +160,19 @@ namespace dlg {
 			pfc::stringcvt::string_wide_from_utf8_t cnv_w;
 			std::vector<std::wstring > vselguids(GetSelectedCount());
 
+			size_t count_not_found = 0;
+
 			t_size walk = selmask.find_first(true, 0, selsize);
 			for (walk; walk < selsize; walk = selmask.find_next(true, walk, selsize)) {
 
 				// check paths
 				const bookmark_t rec = glb::g_store.GetItem(walk);
-				if (rec.path.get_length() && !rec.path.startsWith("https://")) {
+				if (rec.path.get_length() && rec.path.startsWith("file://")) {
 					abort_callback_impl p_abort;
 					try {
 						if (!filesystem_v3::g_exists(rec.path.c_str(), p_abort)) {
-							FB2K_console_print_e("Create D&D Bookmark failed...object not found.");
+							FB2K_console_print_e(PFC_string_formatter() << "Create D&D Bookmarks... removing target for missing file " << rec.path);
+                            ++count_not_found;
 							continue;
 						}
 					}
@@ -191,6 +194,8 @@ namespace dlg {
 				mhl.add_item(track_bm);
 
 			}
+
+			vselguids.resize(vselguids.size() - count_not_found);
 
 			if (m_sorted_dir) {
 				pfc::array_t<t_size> order;
