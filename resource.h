@@ -34,6 +34,8 @@
 #define IDC_MISC_FLAG_WRITE_ON_EDITS    1043
 #define IDC_LAPSE_FLAG                  1044
 #define IDC_LAPSE                       1045
+#define IDC_MISC_FLAG_DUP_ENABLED       1046
+#define IDC_MISC_FLAG_DUP_REMOVE_PREV   1047
 
 // Next default values for new objects
 // 
@@ -41,7 +43,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        113
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1046
+#define _APS_NEXT_CONTROL_VALUE         1048
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

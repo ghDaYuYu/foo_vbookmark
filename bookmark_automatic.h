@@ -80,8 +80,8 @@ public:
 	bool isRestoredDummy(const bookmark_t& bm);
 	bool isRestoredRadioDummy(const bookmark_t& bm);
 
-	void refresh_ui(bool bselect, bool bensure_visible, const std::vector<bookmark_t>& masterList, std::list< dlg::CListControlBookmark*> guiLists);
-
+	void delete_item_ui(size_t index, std::list< dlg::CListControlBookmark*> guiLists);
+	void refresh_ui(bool bselect, bool bensure_visible, std::list< dlg::CListControlBookmark*> guiLists);
 	void Reset_Update_For_Radio() {
 		m_updatePlaylist = true;
 		m_updatePlaylistLapseStart = DBL_MAX;

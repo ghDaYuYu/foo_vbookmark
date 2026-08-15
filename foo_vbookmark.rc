@@ -62,34 +62,37 @@ EXSTYLE WS_EX_CONTROLPARENT
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "Vital Bookmarks",IDC_STATIC_PREF_HEADER,0,0,280,12
-    LTEXT           "Description format:",IDC_STATIC,2,14,78,8
+    LTEXT           "Description format:",IDC_STATIC,2,14,65,8
     EDITTEXT        IDC_TITLEFORMAT,4,25,275,12,ES_AUTOHSCROLL
     LTEXT           "(description format preview)",IDC_PREVIEW,3,41,276,10,NOT WS_GROUP
     LTEXT           "Date format:",IDC_STATIC,1,55,85,8
-    LTEXT           "Time format:",IDC_STATIC_DISPLAY_MS,200,55,70,8
     COMBOBOX        IDC_CMB_DATEFORMAT,3,66,165,12,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Time format:",IDC_STATIC_DISPLAY_MS,200,55,70,8
     CONTROL         "Display ms",IDC_DISPLAY_MS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,203,68,62,10
     LTEXT           "(date format preview)",IDC_PREVIEW_DATE_FORMAT,3,82,275,10,NOT WS_GROUP
-    CONTROL         "Pause bookmark creation",IDC_STATUS_FLAG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,98,148,10
-    CONTROL         "Create on exit",IDC_AUTOSAVE_EXIT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,114,78,10
-    CONTROL         "Create on track change",IDC_AUTOSAVE_TRACK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,127,107,10
-    CONTROL         "Delay (1..60 s):",IDC_LAPSE_FLAG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,110,127,65,10
-    EDITTEXT        IDC_LAPSE,177,124,19,14,ES_CENTER | ES_AUTOHSCROLL | ES_NUMBER
-    CONTROL         "Scroll to new items",IDC_AUTOSAVE_FOCUS_TRACK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,26,142,80,10
-    CONTROL         "Include radio stations",IDC_AUTOSAVE_RADIO_TRACK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,110,142,88,10
-    CONTROL         "Comment station",IDC_AUTOSAVE_RADIO_COMMENT_ST,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,203,142,73,10
+    CONTROL         "Pause bookmark auto-creation",IDC_STATUS_FLAG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,98,114,10
+    CONTROL         "Create on track change",IDC_AUTOSAVE_TRACK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,113,107,10
+    CONTROL         "Delay (1..60 s):",IDC_LAPSE_FLAG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,110,113,65,10
+    EDITTEXT        IDC_LAPSE,177,110,19,14,ES_CENTER | ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "Scroll to new items",IDC_AUTOSAVE_FOCUS_TRACK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,26,128,80,10
+    CONTROL         "Include radio stations",IDC_AUTOSAVE_RADIO_TRACK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,110,128,88,10
+    CONTROL         "Comment station",IDC_AUTOSAVE_RADIO_COMMENT_ST,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,203,128,73,10
+    CONTROL         "Create on exit",IDC_AUTOSAVE_EXIT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,142,66,10
+    LTEXT           "Auto-creation duplicates:",IDC_STATIC,15,156,82,8
+    CONTROL         "Allow duplicates",IDC_MISC_FLAG_DUP_ENABLED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,110,155,70,10
+    CONTROL         "Remove previous",IDC_MISC_FLAG_DUP_REMOVE_PREV,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,203,155,76,10
     CONTROL         "Auto-create only in these playlists: (comma separated)",IDC_AUTOSAVE_TRACK_FILTER_CHECK,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,159,215,10
-    EDITTEXT        IDC_AUTOSAVE_TRACK_FILTER,25,174,254,14,ES_AUTOHSCROLL
-    COMBOBOX        IDC_CMB_PLAYLISTS,25,193,144,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Add playlist",IDC_BTN_ADD_EXISTING_PLAYLIST,171,192,63,16
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,170,215,10
+    EDITTEXT        IDC_AUTOSAVE_TRACK_FILTER,25,182,254,14,ES_AUTOHSCROLL
+    COMBOBOX        IDC_CMB_PLAYLISTS,25,199,144,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Add playlist",IDC_BTN_ADD_EXISTING_PLAYLIST,171,197,63,16
     CONTROL         "Restore bookmarks to queue (seek time only applies to empty queues)",IDC_QUEUE_FLAG,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,215,263,10
     CONTROL         "Flush queue",IDC_QUEUE_FLUSH_FLAG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,25,228,59,10
     CONTROL         "Edit mode",IDC_EDIT_MODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,243,51,10
     CONTROL         "Enter key moves down",IDC_MISC_FLAG_ENTER_KEY_DOWN,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,25,256,91,10
-    CONTROL         "Instant write bookmarks to disk (log mode)",IDC_MISC_FLAG_WRITE_ON_EDITS,
+    CONTROL         "Instant write bookmarks to disc (log mode)",IDC_MISC_FLAG_WRITE_ON_EDITS,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,114,243,152,10
     CONTROL         "Verbose console",IDC_VERBOSE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,270,75,10
     CONTROL         "Callback monitor (required for auto-creation)",IDC_MONITOR,

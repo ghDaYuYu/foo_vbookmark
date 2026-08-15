@@ -16,12 +16,12 @@ namespace {
 
 		if (p_reason == play_control::stop_reason_shutting_down) {
 			if (cfg_autosave_on_quit.get()) {
-				glb::g_bmAuto.updateDummy();
+				g_bmAuto.updateDummy();
 			}
 		}
 		else {
 			g_bmAuto.resetDummyAll();
-			glb::g_bmAuto.updateDummy();
+			g_bmAuto.updateDummy();
 		}
 	}
 
@@ -54,7 +54,7 @@ namespace {
 		}
 
 
-		glb::g_bmAuto.updateDummy();
+		g_bmAuto.updateDummy();
 
 		g_bmAuto.setDyna(false);
 
@@ -79,7 +79,7 @@ namespace {
 				if (is_cfg_Bookmarking()) {
 					g_store.Write();
 					bool bscroll_list = cfg_autosave_focus_newtrack.get();
-					g_bmAuto.refresh_ui(bscroll_list, bscroll_list, g_store.GetMasterList(), g_guiLists);
+					g_bmAuto.refresh_ui(bscroll_list, bscroll_list, g_guiLists);
 				}
 			}
 			else {

@@ -64,7 +64,7 @@ public:
 	}
 	//todo
 	bool isRadio(const pfc::string8 path) const {
-		return path.startsWith("https://");
+		return (path.startsWith("https://") || path.startsWith("http://")) && !path.contains("youtube") && !path.contains("youtu.be");
 	}
 
 	void reset() {

@@ -36,7 +36,9 @@
 #define MISC_FLAG_EDIT_ENTER_KEY_ADV          1 << 0
 #define MISC_FLAG_INSTANT_WRITE_ON_EDITS      1 << 1
 #define MISC_CUST3_FLAG                       1 << 2
-
+#define MISC_DUP_ENABLED_FLAG                 1 << 3
+#define MISC_DUP_REMOVE_PREV_FLAG             1 << 4
+//cfg_lapse_flag
 #define LAPSE_FLAG_ENABLED                    1 << 0
 
   inline bool is_cfg_Bookmarking() { return !(cfg_status_flag.get_value() & STATUS_PAUSED_FLAG); }
@@ -45,5 +47,7 @@
   inline bool is_cfg_Enter_Key_Adv() { return cfg_misc_flag.get_value() & MISC_FLAG_EDIT_ENTER_KEY_ADV; }
   inline bool is_cfg_Instant_Write() { return cfg_misc_flag.get_value() & MISC_FLAG_INSTANT_WRITE_ON_EDITS; }
   inline bool is_cfg_LapseEnabled() { return cfg_lapse_flag.get_value() & LAPSE_FLAG_ENABLED; }
+  inline bool is_cfg_Dupli_Enabled() { return cfg_misc_flag.get_value() & MISC_DUP_ENABLED_FLAG; }
+  inline bool is_cfg_Dupli_Remove_Prev() { return is_cfg_Dupli_Enabled() && cfg_misc_flag.get_value() & MISC_DUP_REMOVE_PREV_FLAG; }
   inline int get_cfg_lapse() { return atoi(cfg_lapse.get_value()); }
   extern GUID g_get_prefs_guid();

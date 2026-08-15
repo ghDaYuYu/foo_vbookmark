@@ -332,8 +332,13 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 
 	if (is_cfg_Bookmarking()) {
 
-		for (auto rit = std::rbegin(masterList); rit != std::rend(masterList); ++rit) {
+		bool allowed_duplicates = is_cfg_Dupli_Enabled();
+		bool realloc_prev_duplicate = is_cfg_Dupli_Remove_Prev();
+		size_t dup_ndx = SIZE_MAX;
 
+		for (auto rit = std::rbegin(masterList); rit != std::rend(masterList); ++rit) {
+			//rev. renames
+			bool brevstart = dummy.get_time() < 2 * KMin_Lapse;
 			bool brevtime = abs(rit->get_time() - dummy.get_time()) <= 2 * KMin_Lapse;
 			bool brevpath = rit->path.equals(dummy.path) && pfc::guid_equal(rit->guid_playlist, dummy.guid_playlist);
 			brevpath = brevpath && rit->subsong == dummy.subsong;
@@ -341,12 +346,24 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 
 			if (dummy.need_playlist || (brevtime && brevpath && brevradio)) {
 
-				if (!dummy.need_playlist && (brevtime && brevpath)) {
-					FB2K_console_print_e("Skipping duplicated bookmark: ", dummy.path);
+				if (allowed_duplicates && brevstart) {
+					dup_ndx = std::distance(std::rbegin(masterList), rit);
+					dup_ndx = masterList.size() - dup_ndx - 1;
+					if (realloc_prev_duplicate) {
+						bit_array_bittable changeMask(bit_array_false(), g_primaryGuiList->GetItemCount());
+						changeMask.set(dup_ndx, true);
+						g_store.Remove(changeMask);
+						delete_item_ui(dup_ndx, g_guiLists);
+						break;
+					}
 				}
-
-				// nothing to do
-				return false;
+				else {
+					if (!dummy.need_playlist && (brevtime && brevpath)) {
+						FB2K_console_print_e("Skipping duplicated bookmark: ", dummy.path);
+					}
+					// nothing to do
+					return false;
+				}
 			}
 		}
 
@@ -365,7 +382,7 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 		//UI update
 		if (!bshooting_down) {
 			bool bscroll_list = cfg_autosave_focus_newtrack.get();
-			refresh_ui(bscroll_list, bscroll_list, g_store.GetMasterList(), guiLists);
+			refresh_ui(bscroll_list, bscroll_list, guiLists);
 		}
 	}
 	return g_store.Size() != old_size;
@@ -417,11 +434,11 @@ void bookmark_automatic::checkDeletedRestoredDummy(const bit_array& mask, size_t
 		}
 	}
 }
-
-void bookmark_automatic::refresh_ui(bool bselect, bool bensure_visible, const std::vector<bookmark_t>& masterList, std::list< dlg::CListControlBookmark*> guiLists) {
+//todo: move to dlg or list ctrl
+void bookmark_automatic::refresh_ui(bool bselect, bool bensure_visible, std::list< dlg::CListControlBookmark*> guiLists) {
 	for (auto it = guiLists.begin(); it != guiLists.end(); ++it) {
 		dlg::CListControlBookmark* lc = *it;
-		size_t item = masterList.size() - 1;
+		size_t item = lc->GetItemCount() - 1;
 		if (lc->GetSortOrder()) {
 			item = 0;
 		}

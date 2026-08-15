@@ -144,6 +144,8 @@ const CDialogResizeHelper::Param resize_params[] = {
 	{IDC_DISPLAY_MS, 1,0,1,0},
 	{IDC_STATIC_DISPLAY_MS, 1,0,1,0},
 	{IDC_MISC_FLAG_WRITE_ON_EDITS, 1,0,1,0},
+	{IDC_MISC_FLAG_DUP_ENABLED, 1,0,1,0},
+	{IDC_MISC_FLAG_DUP_REMOVE_PREV, 1,0,1,0},
 	{IDC_MONITOR, 1,0,1,0},
 };
 
@@ -409,6 +411,8 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow, LPARAM) {
 
 	cfgToUi(bai_misc_flag, MISC_FLAG_EDIT_ENTER_KEY_ADV, bai_misc_flag.idc);
 	cfgToUi(bai_misc_flag, MISC_FLAG_INSTANT_WRITE_ON_EDITS, IDC_MISC_FLAG_WRITE_ON_EDITS);
+	cfgToUi(bai_misc_flag, MISC_DUP_ENABLED_FLAG, IDC_MISC_FLAG_DUP_ENABLED);
+	cfgToUi(bai_misc_flag, MISC_DUP_REMOVE_PREV_FLAG, IDC_MISC_FLAG_DUP_REMOVE_PREV);
 
 	cfgToUi(bai_lapse_flag, LAPSE_FLAG_ENABLED, IDC_LAPSE_FLAG);
 
@@ -562,6 +566,8 @@ void CBookmarkPreferences::reset() {
 
 	defToUi(bai_misc_flag, MISC_FLAG_EDIT_ENTER_KEY_ADV, /*IDC_MISC_FLAG_ENTER_KEY_DOWN*/bai_misc_flag.idc);
 	defToUi(bai_misc_flag, MISC_FLAG_INSTANT_WRITE_ON_EDITS, IDC_MISC_FLAG_WRITE_ON_EDITS);
+	defToUi(bai_misc_flag, MISC_DUP_ENABLED_FLAG, IDC_MISC_FLAG_DUP_ENABLED);
+	defToUi(bai_misc_flag, MISC_DUP_REMOVE_PREV_FLAG, IDC_MISC_FLAG_DUP_REMOVE_PREV);
 
 	defToUi(bai_lapse_flag, LAPSE_FLAG_ENABLED, IDC_LAPSE_FLAG);
 
@@ -613,6 +619,8 @@ void CBookmarkPreferences::apply() {
 	ui_fval = 0;
 	ui_fval = IsDlgButtonChecked(/*IDC_MISC_FLAG_ENTER_KEY_DOWN*/bai_misc_flag.idc) ? MISC_FLAG_EDIT_ENTER_KEY_ADV : ui_fval;
 	ui_fval = IsDlgButtonChecked(IDC_MISC_FLAG_WRITE_ON_EDITS) ? ui_fval | MISC_FLAG_INSTANT_WRITE_ON_EDITS : ui_fval;
+	ui_fval = IsDlgButtonChecked(IDC_MISC_FLAG_DUP_ENABLED) ? ui_fval | MISC_DUP_ENABLED_FLAG : ui_fval;
+	ui_fval = IsDlgButtonChecked(IDC_MISC_FLAG_DUP_REMOVE_PREV) ? ui_fval | MISC_DUP_REMOVE_PREV_FLAG : ui_fval;
 	uiToCfg(bai_misc_flag, ui_fval);
 
 	ui_fval = 0;
@@ -661,6 +669,8 @@ bool CBookmarkPreferences::HasChanged() {
 	ui_fval = 0;
 	ui_fval = IsDlgButtonChecked(/*IDC_MISC_FLAG_ENTER_KEY_DOWN*/bai_misc_flag.idc) ? MISC_FLAG_EDIT_ENTER_KEY_ADV : ui_fval;
 	ui_fval = IsDlgButtonChecked(IDC_MISC_FLAG_WRITE_ON_EDITS) ? ui_fval | MISC_FLAG_INSTANT_WRITE_ON_EDITS : ui_fval;
+	ui_fval = IsDlgButtonChecked(IDC_MISC_FLAG_DUP_ENABLED) ? ui_fval | MISC_DUP_ENABLED_FLAG : ui_fval;
+	ui_fval = IsDlgButtonChecked(IDC_MISC_FLAG_DUP_REMOVE_PREV) ? ui_fval | MISC_DUP_REMOVE_PREV_FLAG : ui_fval;
 
 	result |= isUiChanged(bai_misc_flag, ui_fval);
 
