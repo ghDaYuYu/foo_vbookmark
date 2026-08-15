@@ -350,7 +350,7 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 					dup_ndx = std::distance(std::rbegin(masterList), rit);
 					dup_ndx = masterList.size() - dup_ndx - 1;
 					if (realloc_prev_duplicate) {
-						bit_array_bittable changeMask(bit_array_false(), g_primaryGuiList->GetItemCount());
+						bit_array_bittable changeMask(bit_array_false(), masterList.size());
 						changeMask.set(dup_ndx, true);
 						g_store.Remove(changeMask);
 						delete_item_ui(dup_ndx, g_guiLists);
@@ -453,5 +453,31 @@ void bookmark_automatic::refresh_ui(bool bselect, bool bensure_visible, std::lis
 		if (bselect) {
 			lc->SetFocusItem(item);
 		}
+	}
+}
+
+void bookmark_automatic::delete_item_ui(size_t index, std::list< dlg::CListControlBookmark*> guiLists) {
+
+	for (auto it = guiLists.begin(); it != guiLists.end(); ++it) {
+
+		size_t item = (std::min)((int)index, (int)g_store.Size() - 1);
+		bit_array_bittable changeMask(bit_array_false(), g_primaryGuiList->GetItemCount());
+		changeMask.set(index, true);
+		size_t new_pos = index;
+		//rev. index after deletion
+		if ((*it)->GetSortOrder()) {
+			(*it)->GetSortOrderedMask(changeMask);
+			for (size_t w = 0; w < changeMask.size(); w++) {
+				if (changeMask[w]) {
+					index = w;
+					break;
+				}
+			}
+		}
+		if ((*it)->TableEdit_IsActive()) {
+			(*it)->TableEdit_Abort(false);
+		}
+		(*it)->SelectNone();
+		(*it)->OnItemRemoved(index);
 	}
 }

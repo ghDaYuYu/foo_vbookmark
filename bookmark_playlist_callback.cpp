@@ -15,10 +15,6 @@ void bookmark_playlist_callback::on_playlists_removing(const bit_array& p_mask, 
 		return;
 	}
 
-	if (g_guiLists.empty()) {
-		return;
-	}
-
 	auto f = p_mask.find_first(true, 0, p_old_count);
 	for (auto n = f; n < p_old_count; n = p_mask.find_next(true, n, p_old_count))
 	{
@@ -30,9 +26,9 @@ void bookmark_playlist_callback::on_playlists_removing(const bit_array& p_mask, 
 		GUID plguid = playlist_manager_v5::get()->playlist_get_guid(n);
 		pfc::string8 str_plguid = pfc::print_guid(plguid);
 
-		bit_array_bittable changeMask(bit_array_false(), g_primaryGuiList->GetItemCount());
-
 		const std::vector<bookmark_t> masterList = g_store.GetMasterList();
+		bit_array_bittable changeMask(bit_array_false(), masterList.size());
+
 		auto& found_it = std::find_if(masterList.begin(), masterList.end(), [&](const bookmark_t& elem) {
 			return (pfc::guid_equal(plguid, elem.guid_playlist));
 			});
@@ -77,17 +73,14 @@ void bookmark_playlist_callback::on_playlist_renamed(t_size p_index, const char*
 		return;
 	}
 
-	if (g_guiLists.empty()) {
-		return;
-	}
-
 	bool bchanged = false;
 
 	GUID plguid = playlist_manager_v5::get()->playlist_get_guid(p_index);
 	pfc::string8 str_plguid = pfc::print_guid(plguid);
-	bit_array_bittable changeMask(bit_array_false(), g_primaryGuiList->GetItemCount());
 
 	const std::vector<bookmark_t> masterList = g_store.GetMasterList();
+	bit_array_bittable changeMask(bit_array_false(), masterList.size());
+
 	auto & found_it = std::find_if(masterList.begin(), masterList.end(), [&](const bookmark_t& elem) {
 		return (pfc::guid_equal(plguid, elem.guid_playlist));
 		});
