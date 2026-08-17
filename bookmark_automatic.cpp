@@ -71,23 +71,28 @@ void bookmark_automatic::updateDummyTime() {
 			}
 
 			if (is_cfg_LapseEnabled()) {
-				if(m_updatePlaylistLapse < get_cfg_lapse()) {
-					//rev. rename
-					m_updatePlaylist = true;
-					return;
-				}
-				else {
-					if (m_updatePlaylistLapseStart != DBL_MAX) {
-						dummy.set_rt_time(m_updatePlaylistLapseStart);
-					}
-				}
-			}
+			
+                if(m_updatePlaylistLapse < get_cfg_lapse()) {
 
-			if (bcan_autosave_newtrack) {
-				// AUTO - CREATE
-				bool bres = upgradeDummy(g_guiLists);
-				bres = bres;
-			}
+                    m_updatePlaylist = true;
+     
+                    //do not wait for lapse
+                    if (restored_dummy.path.get_length()) {
+                        bool bradio_restored = isRestoredRadioDummy(dummy);
+                        bool bdummy_restored = isRestoredDummy(dummy);
+                        if (bradio_restored || bdummy_restored) {
+                            ResetRestoredDummy();
+                        }
+                    }
+
+                    return;
+                }
+                else {
+                    if (m_updatePlaylistLapseStart != DBL_MAX) {
+                        dummy.set_rt_time(m_updatePlaylistLapseStart);
+                    }
+                }
+            }
 		}
 		else {
 			bool blapse_enabled = is_cfg_LapseEnabled();
