@@ -25,6 +25,8 @@
   extern cfg_string cfg_lapse;
   extern cfg_int cfg_lapse_flag;
 
+  extern cfg_string cfg_header_click_block_flag;
+
 #define QUEUE_RESTORE_TO_FLAG                 1 << 0
 #define QUEUE_FLUSH_FLAG                      1 << 1
 #define QUEUE_CUST2_FLAG                      1 << 2
@@ -50,4 +52,6 @@
   inline bool is_cfg_Dupli_Enabled() { return cfg_misc_flag.get_value() & MISC_DUP_ENABLED_FLAG; }
   inline bool is_cfg_Dupli_Remove_Prev() { return is_cfg_Dupli_Enabled() && cfg_misc_flag.get_value() & MISC_DUP_REMOVE_PREV_FLAG; }
   inline int get_cfg_lapse() { return atoi(cfg_lapse.get_value()); }
+  inline int get_cfg_header_cb_flag() { return atoi(cfg_header_click_block_flag.get_value()); }
+  inline bool is_cfg_Header_Click_Blocked(size_t ndx) { return get_cfg_header_cb_flag() & (1 << ndx); }
   extern GUID g_get_prefs_guid();

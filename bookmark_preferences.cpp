@@ -56,6 +56,9 @@ static const GUID guid_cfg_misc_flag = { 0x452ac946, 0xf849, 0x4c79, { 0x98, 0x6
 // {B73E6AAA-AFC4-4C24-BC00-85BE8371586F}
 static const GUID guid_cfg_lapse_flag ={ 0xb73e6aaa, 0xafc4, 0x4c24, { 0xbc, 0x0, 0x85, 0xbe, 0x83, 0x71, 0x58, 0x6f } };
 
+// {EC97BD7C-83B2-4E1C-BE43-0A5146C01A3A}
+static const GUID guid_cfg_header_click_block_flag = { 0xec97bd7c, 0x83b2, 0x4e1c, { 0xbe, 0x43, 0xa, 0x51, 0x46, 0xc0, 0x1a, 0x3a } };
+
 // defaults
 
 static const pfc::string8 default_cfg_bookmark_desc_format = "%title% - $if2(%album% - ,- )%artist%";
@@ -82,7 +85,9 @@ static const bool default_cfg_edit_mode = false;
 
 static const int default_cfg_misc_flag = 0;
 
-static const int default_cfg_lapse_flag = 0;
+static const int default_cfg_lapse_flag = LAPSE_FLAG_ENABLED;
+
+static const pfc::string8 default_cfg_header_click_block_flag = "0";
 
 // cfg_var
 
@@ -112,6 +117,8 @@ cfg_int cfg_misc_flag(guid_cfg_misc_flag, default_cfg_misc_flag);
 
 cfg_int cfg_lapse_flag(guid_cfg_lapse_flag, default_cfg_lapse_flag);
 
+cfg_string cfg_header_click_block_flag(guid_cfg_header_click_block_flag, default_cfg_header_click_block_flag);
+
 struct boxAndBool_t {
 	int idc;
 	cfg_bool* cfg;
@@ -137,12 +144,14 @@ const CDialogResizeHelper::Param resize_params[] = {
 	{IDC_PREVIEW, 0,0,1,0},
 	{IDC_QUEUE_FLAG, 0,0,1,0},
 	{IDC_EDIT_MODE, 0,0,1,0},
+	{IDC_BUTTON_HEADER_CB, 1,0,1,0},
 	{IDC_AUTOSAVE_RADIO_TRACK, 1,0,1,0},
 	{IDC_AUTOSAVE_RADIO_COMMENT_ST, 1,0,1,0},
 	{IDC_LAPSE_FLAG, 1,0,1,0},
 	{IDC_LAPSE, 1,0,1,0},
 	{IDC_DISPLAY_MS, 1,0,1,0},
 	{IDC_STATIC_DISPLAY_MS, 1,0,1,0},
+	{IDC_STATIC_HEADER_LOCK, 1,0,1,0},
 	{IDC_MISC_FLAG_WRITE_ON_EDITS, 1,0,1,0},
 	{IDC_MISC_FLAG_DUP_ENABLED, 1,0,1,0},
 	{IDC_MISC_FLAG_DUP_REMOVE_PREV, 1,0,1,0},
@@ -189,6 +198,7 @@ private:
 	void OnEditChange(UINT uNotifyCode, int nId, CWindow wndCtl);
 	void OnComboChange(UINT uNotifyCode, int nId, CWindow wndCtl);
 	void OnCheckChange(UINT uNotifyCode, int nId, CWindow wndCtl);
+	void on_menu_header_click_block();
 
 	bool HasChanged();
 	void OnChanged();
@@ -341,6 +351,7 @@ private:
 
 	boxAndInt_t bai_lapse_flag = { IDC_LAPSE_FLAG, &cfg_lapse_flag, default_cfg_lapse_flag };
 
+	ectrlAndString_t eat_header_click_block_flag = { IDC_HIDDEN_HEADER_CLICK_BLOCK_FLAG, &cfg_header_click_block_flag, default_cfg_header_click_block_flag };
 };
 
 void ConvertString8(const pfc::string8 orig, wchar_t* out, size_t max) {
@@ -416,6 +427,8 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow, LPARAM) {
 
 	cfgToUi(bai_lapse_flag, LAPSE_FLAG_ENABLED, IDC_LAPSE_FLAG);
 
+	cfgToUi(eat_header_click_block_flag);
+
 	//static header
 
 	HWND wndStaticHeader = uGetDlgItem(IDC_STATIC_PREF_HEADER);
@@ -477,9 +490,66 @@ void CBookmarkPreferences::OnComboChange(UINT uNotifyCode, int nId, CWindow wndC
 	m_callback->on_state_changed();
 }
 
+void CBookmarkPreferences::on_menu_header_click_block() {
+
+	CRect rcButton;
+	HWND hwndCtrl = ::GetDlgItem(m_hWnd, IDC_BUTTON_HEADER_CB);
+	::GetWindowRect(hwndCtrl, rcButton);
+
+	POINT pt = {};
+	pt.x = rcButton.left;
+	pt.y = rcButton.bottom;
+
+	pfc::string8 currStrFlag = uGetDlgItemText(m_hWnd, IDC_HIDDEN_HEADER_CLICK_BLOCK_FLAG);
+	int tmpFlag = atoi(currStrFlag);
+	int tmpFlagAll = 1 << 0 | 1 << 1 | 1 << 2 | 1 << 3 | 1 << 4 | 1 << 5;
+
+	enum { CMD_1 = 1, CMD_2, CMD_3, CMD_4, CMD_5, CMD_6, CMD_ALL, CMD_NONE };
+	HMENU hSplitMenu = CreatePopupMenu();
+
+	AppendMenu(hSplitMenu, MF_STRING | (tmpFlag & (1 << 0) ? MF_CHECKED : MF_UNCHECKED), CMD_1, L"#");
+	AppendMenu(hSplitMenu, MF_STRING | (tmpFlag & (1 << 1) ? MF_CHECKED : MF_UNCHECKED), CMD_2, L"Time");
+	AppendMenu(hSplitMenu, MF_STRING | (tmpFlag & (1 << 2) ? MF_CHECKED : MF_UNCHECKED), CMD_3, L"Bookmark");
+	AppendMenu(hSplitMenu, MF_STRING | (tmpFlag & (1 << 3) ? MF_CHECKED : MF_UNCHECKED), CMD_4, L"Playlist");
+	AppendMenu(hSplitMenu, MF_STRING | (tmpFlag & (1 << 4) ? MF_CHECKED : MF_UNCHECKED), CMD_5, L"Comment");
+	AppendMenu(hSplitMenu, MF_STRING | (tmpFlag & (1 << 5) ? MF_CHECKED : MF_UNCHECKED), CMD_6, L"Date");
+	AppendMenu(hSplitMenu, MF_SEPARATOR, 0, 0);
+	AppendMenu(hSplitMenu, MF_STRING | (tmpFlag == tmpFlagAll ? MF_CHECKED : MF_UNCHECKED), CMD_ALL, L"All");
+	AppendMenu(hSplitMenu, MF_STRING | (tmpFlag == 0 ? MF_CHECKED : MF_UNCHECKED), CMD_NONE, L"None");
+
+	int cmd = TrackPopupMenu(hSplitMenu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RETURNCMD, pt.x, pt.y, 0, m_hWnd, NULL);
+	DestroyMenu(hSplitMenu);
+
+	if (!cmd) return;
+
+	int cmd_ndx = --cmd;
+
+	if (cmd_ndx >= 0 && cmd_ndx < 6) {
+		//tmpFlag = tmpFlag & (1 << cmd_ndx) ? tmpFlag - (1 << cmd_ndx) : tmpFlag + (1 << cmd_ndx);
+		if (tmpFlag & (1 << cmd_ndx))
+			tmpFlag &= ~(1 << cmd_ndx);
+		else
+			tmpFlag |= (1 << cmd_ndx);
+	}
+	else if (cmd == CMD_ALL) {
+		tmpFlag = tmpFlagAll;
+	}
+	else if (cmd == CMD_NONE) {
+		tmpFlag = 0;
+	}
+
+	uSetDlgItemText(m_hWnd, IDC_HIDDEN_HEADER_CLICK_BLOCK_FLAG, std::to_string(tmpFlag).c_str());
+	OnChanged();
+
+}
+
 void CBookmarkPreferences::OnCheckChange(UINT uNotifyCode, int nId, CWindow wndCtl) {
 
-	if (nId == IDC_BTN_ADD_EXISTING_PLAYLIST) {
+	if (nId == IDC_BUTTON_HEADER_CB) {
+		on_menu_header_click_block();
+		OnChanged();
+	}
+	else if (nId == IDC_BTN_ADD_EXISTING_PLAYLIST) {
 
 		//Todo: add currently selected playlist to the filter edit control
 		CComboBox comboBox = GetDlgItem(IDC_CMB_PLAYLISTS);
@@ -571,6 +641,8 @@ void CBookmarkPreferences::reset() {
 
 	defToUi(bai_lapse_flag, LAPSE_FLAG_ENABLED, IDC_LAPSE_FLAG);
 
+	defToUi(eat_header_click_block_flag);
+
 	OnChanged();
 }
 
@@ -627,6 +699,8 @@ void CBookmarkPreferences::apply() {
 	ui_fval = IsDlgButtonChecked(IDC_LAPSE_FLAG) ? ui_fval | LAPSE_FLAG_ENABLED: ui_fval;
 	uiToCfg(bai_lapse_flag, ui_fval);
 
+	uiToCfg(eat_header_click_block_flag);
+
 	if (bneedReload) {
 		for (auto gui : g_guiLists) {
 			gui->ReloadItems(bit_array_true());
@@ -678,6 +752,8 @@ bool CBookmarkPreferences::HasChanged() {
 	ui_fval = IsDlgButtonChecked(IDC_LAPSE_FLAG) ? ui_fval | LAPSE_FLAG_ENABLED : ui_fval;
 
 	result |= isUiChanged(bai_lapse_flag, ui_fval);
+
+	result |= isUiChanged(eat_header_click_block_flag);
 
 	return result;
 }

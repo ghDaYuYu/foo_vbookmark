@@ -521,6 +521,10 @@ namespace dlg {
 
 		auto colContentIndex = GetColContent(index);
 
+		if (is_cfg_Header_Click_Blocked(colContentIndex)) {
+			return;
+		}
+
 		int header_ndx = static_cast<int>(index);
 
 		if (colContentIndex == 0) {
