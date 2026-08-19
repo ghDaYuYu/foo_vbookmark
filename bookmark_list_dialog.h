@@ -192,16 +192,9 @@ namespace dlg {
 				for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
 					size_t item = (std::min)((int)index, (int)g_store.Size() - 1);
 					bit_array_bittable changeMask(bit_array_false(), g_primaryGuiList->GetItemCount());
-					changeMask.set(index, true);
-
+					size_t new_pos = index;
 					if ((*it)->GetSortOrder()) {
-						(*it)->GetSortOrderedMask(changeMask);
-						for (size_t w = 0; w < changeMask.size(); w++) {
-							if (changeMask[w]) {
-								index = w;
-								break;
-							}
-						}
+						index = (*it)->GetItemCount() - index;
 					}
 					(*it)->SelectNone();
 					(*it)->EnsureItemVisible(index, false);
@@ -410,6 +403,8 @@ namespace dlg {
 						else {
 							configToUI(true);
 						}
+
+						m_guiList.ColumnsChanged();
 					}
 				}
 				else {
