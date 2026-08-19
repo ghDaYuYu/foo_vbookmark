@@ -44,8 +44,6 @@ namespace {
 			SendMessage(g_wnd_bookmark_pref, UMSG_NEW_TRACK, NULL, NULL);
 		}
 
-		auto bm = g_bmAuto.getDummy();
-
 		if (g_bmAuto.getDyna()) {
 			g_bmAuto.resetDummyKeepDyna();
 		}
@@ -58,18 +56,20 @@ namespace {
 
 		g_bmAuto.setDyna(false);
 
-		auto nt = g_bmAuto.getDummy();
-		if (!nt.need_playlist) {
-			pfc::string8 q_orphan = !nt.playlist.get_length() ? " (no playlist)" : "";
-			FB2K_console_print_v("New track details... ", nt.desc, q_orphan );
+		auto bm = g_bmAuto.getDummy();
+
+		if (!(g_bmAuto.isUpdating() && bm.need_loc_retries <= LOC_RETRIES)) {
+			pfc::string8 q_orphan = !bm.playlist.get_length() ? " (no playlist)" : "";
+			FB2K_console_print_v("New track details... ", bm.desc, q_orphan );
 		}
 		else {
 			return;
 		}
 
-		bool bcan_autosave_newtrack = cfg_autosave_newtrack.get() && (!g_bmAuto.checkDummyIsRadio() || cfg_autosave_radio_newtrack.get());
+		bool bcan_autosave_newtrack = cfg_autosave_newtrack.get();
+		bcan_autosave_newtrack &= cfg_autosave_radio_newtrack.get() || !bm.isRadio();
 
-		if (is_cfg_LapseEnabled() && nt.isRadio()) {
+		if (is_cfg_LapseEnabled() && bm.isRadio()) {
 			bcan_autosave_newtrack = false;
 			g_bmAuto.Reset_Update_For_Radio();
 		}
@@ -96,7 +96,7 @@ namespace {
 			return;
 		}
 
-
+		g_bmAuto.resetDummyAll();
 		g_bmAuto.updateDummyTime();
 	}
 

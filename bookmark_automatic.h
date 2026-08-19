@@ -34,6 +34,10 @@ public:
 		return dummy;
 	}
 
+	const bool isUpdating() {
+		return m_updating;
+	}
+
 	bool getDyna() {
 		return dummy.isRadio() && dummy.dyna;
 	}
@@ -51,7 +55,7 @@ public:
 
 	bool fetchHelloRadioStationName(pfc::string8 &out);
 
-	bool CheckAutoFilter();
+	bool CheckAutoPlaylistFilter();
 
 	void updateDummyTime();
 	void updateDummy();
@@ -83,7 +87,7 @@ public:
 	void delete_item_ui(size_t index, std::list< dlg::CListControlBookmark*> guiLists);
 	void refresh_ui(bool bselect, bool bensure_visible, std::list< dlg::CListControlBookmark*> guiLists);
 	void Reset_Update_For_Radio() {
-		m_updatePlaylist = true;
+		m_updating = true;
 		m_updatePlaylistLapseStart = DBL_MAX;
 	}
 
@@ -91,7 +95,9 @@ private:
 
 	bookmark_t dummy;
 	bookmark_t restored_dummy;
-	bool m_updatePlaylist = true;
+
+	bool m_updating = true;
+
 	double m_updatePlaylistLapse = 0.0;
 	double m_updatePlaylistLapseStart = DBL_MAX;
 	titleformat_object::ptr m_pttf_title = nullptr;

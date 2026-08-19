@@ -16,102 +16,135 @@ void bookmark_automatic::updateDummyTime() {
 
 	dummy.set_rt_time(playback_control::get()->playback_get_position());
 
-	if (m_updatePlaylistLapseStart == DBL_MAX) {
-		m_updatePlaylistLapseStart = dummy.get_time();
+	if (is_cfg_LapseEnabled()) {
+
+		if (m_updatePlaylistLapseStart == DBL_MAX) {
+			m_updatePlaylistLapseStart = dummy.get_time();
+		}
+
+		m_updatePlaylistLapse = dummy.get_time() - m_updatePlaylistLapseStart;
 	}
 
-	m_updatePlaylistLapse = dummy.get_time() - m_updatePlaylistLapseStart;
+	if (m_updating) {
 
-	if (m_updatePlaylist) {
-		m_updatePlaylist = false;
+		bool b_data_srv_available = false;
 
-		auto playlist_manager_ptr = playlist_manager_v5::get();
+		pfc::string8 playing_playlist_name;
+		size_t playing_playlist_index;
 
-		pfc::string8 playing_pl_name;
-		size_t index_playlist;
-		size_t index_item;
+		if (dummy.need_playlist && !dummy.playlist.get_length())
+		{
+			//rev: no playlist items querying location
 
-		bool bItemLoc = playlist_manager_ptr->get_playing_item_location(&index_playlist, &index_item);
-		bool bPlaylist = false;
+			size_t index_item;
 
-		if (bItemLoc) {
-			FB2K_console_print_v("<update time> - Item location playlist index: ", index_playlist);
+			bool bItemLoc = playlist_manager_v5::get()->get_playing_item_location(&playing_playlist_index, &index_item);
+			bool bPlaylist = false;
 
-			bPlaylist = playlist_manager_ptr->playlist_get_name(index_playlist, playing_pl_name);
+			if (bItemLoc) {
+				FB2K_console_print_v("<update time> - Item location playlist index: ", playing_playlist_index);
 
-			if (bPlaylist) {
-				FB2K_console_print_v("<update time> - Item location playlist name: ", playing_pl_name);
-			}
-		}
-		else {
-			FB2K_console_print_v("<update time> - Fetching item location ", dummy.path);
+				bPlaylist = playlist_manager_v5::get()->playlist_get_name(playing_playlist_index, playing_playlist_name);
 
-			//increase retries
-			++dummy.need_loc_retries;
-		}
-
-		//Set the flag back to true if either operation fails
-		m_updatePlaylist |= !bItemLoc;
-		m_updatePlaylist |= !bPlaylist;
-
-		bool bcan_autosave_newtrack = cfg_autosave_newtrack.get() && (!checkDummyIsRadio() || cfg_autosave_radio_newtrack.get());
-
-		if (!m_updatePlaylist) {
-
-			//without using c_str(), the full 80 characters are written every time
-			dummy.playlist = playing_pl_name.c_str();
-			dummy.guid_playlist = playlist_manager_ptr->playlist_get_guid(index_playlist);
-			dummy.need_playlist = m_updatePlaylist;
-
-			if (!dummy.need_playlist) {
-				FB2K_console_print_v("Track details ready... ", dummy.desc);
+				if (bPlaylist) {
+					FB2K_console_print_v("<update time> - Item location playlist name: ", playing_playlist_name);
+				}
 			}
 			else {
-				return;
+				FB2K_console_print_v("<update time> - Unknown item location ", dummy.path);
+
+				//increase retries
+				++dummy.need_loc_retries;
+			}
+
+			b_data_srv_available = bItemLoc && bPlaylist;
+
+		}
+		else {
+			//..
+		}
+
+		bool bcan_autosave_newtrack = cfg_autosave_newtrack.get();
+		bcan_autosave_newtrack &= cfg_autosave_radio_newtrack.get() || !dummy.isRadio();
+
+		bool b_write_store = false;
+
+		if (b_data_srv_available || !dummy.need_playlist) {
+
+			// loc available
+
+			if (!dummy.need_playlist) {
+				FB2K_console_print_v("Track details available, checking delay... ", dummy.desc);
 			}
 
 			if (is_cfg_LapseEnabled()) {
-			
-                if(m_updatePlaylistLapse < get_cfg_lapse()) {
 
-                    m_updatePlaylist = true;
-     
-                    //do not wait for lapse
-                    if (restored_dummy.path.get_length()) {
-                        bool bradio_restored = isRestoredRadioDummy(dummy);
-                        bool bdummy_restored = isRestoredDummy(dummy);
-                        if (bradio_restored || bdummy_restored) {
-                            ResetRestoredDummy();
-                        }
-                    }
+				if(m_updatePlaylistLapse < get_cfg_lapse()) {
 
-                    return;
-                }
-                else {
-                    if (m_updatePlaylistLapseStart != DBL_MAX) {
-                        dummy.set_rt_time(m_updatePlaylistLapseStart);
-                    }
-                }
-            }
-		}
-		else {
-			bool blapse_enabled = is_cfg_LapseEnabled();
-			if ((blapse_enabled && m_updatePlaylistLapse > get_cfg_lapse()) || (!blapse_enabled && dummy.need_loc_retries > LOC_RETRIES)) {
-				FB2K_console_print_v("<update time>: giving up item location requests");
+					//do not wait for lapse
+					if (restored_dummy.path.get_length()) {
+						bool bradio_restored = isRestoredRadioDummy(dummy);
+						bool bdummy_restored = isRestoredDummy(dummy);
+						if (bradio_restored || bdummy_restored) {
+							ResetRestoredDummy();
+						}
+					}
 
-				//give up
-				m_updatePlaylist = dummy.need_playlist = false;
+					//
+					return;
+					//
 
-				if (!dummy.need_playlist) {
-					FB2K_console_print_v("Track partial details ready... ", dummy.desc);
 				}
 				else {
-					return;
+					if (m_updatePlaylistLapseStart != DBL_MAX) {
+						dummy.set_rt_time(m_updatePlaylistLapseStart);
+					}
+				}
+			}
+
+			if (bcan_autosave_newtrack) {
+
+				// AUTO - CREATE
+
+				if (b_data_srv_available && dummy.need_playlist) {
+
+					updateDummy();
+					if (is_cfg_LapseEnabled()) {
+
+						if (m_updatePlaylistLapseStart != DBL_MAX) {
+							dummy.set_rt_time(m_updatePlaylistLapseStart);
+						}
+					}
+				}
+
+				bool bres = upgradeDummy(g_guiLists);
+				m_updatePlaylistLapseStart = DBL_MAX;
+			}
+			else if (cfg_autosave_on_quit.get()) {
+				updateDummy();
+			}
+
+			m_updating = dummy.need_playlist = false;
+		}
+		else {
+
+			// loc not available
+
+			// check lapse first, retries may be > LOC_RETRIES for non-playlist items (queued, ...)
+			bool blapse_enabled_completed = is_cfg_LapseEnabled() && m_updatePlaylistLapse > get_cfg_lapse();
+
+			if (blapse_enabled_completed || (!is_cfg_LapseEnabled() && dummy.need_loc_retries > LOC_RETRIES)) {
+
+				FB2K_console_print_v(PFC_string_formatter() << "<update time>: " << (blapse_enabled_completed ? "delayed" : "too many retries"));
+
+				if (!dummy.need_playlist) {
+					FB2K_console_print_v("delayed, queued, too many retries, details... ", dummy.desc);
 				}
 
 				if (bcan_autosave_newtrack) {
 
 					if (is_cfg_LapseEnabled()) {
+
 						if (m_updatePlaylistLapseStart != DBL_MAX) {
 							dummy.set_rt_time(m_updatePlaylistLapseStart);
 						}
@@ -119,8 +152,13 @@ void bookmark_automatic::updateDummyTime() {
 
 					// AUTO - CREATE
 					bool bres = upgradeDummy(g_guiLists);
+					m_updatePlaylistLapseStart = DBL_MAX;
 				}
-				return;
+				else if (cfg_autosave_on_quit.get()) {
+					updateDummy();
+				}
+
+				m_updating = dummy.need_playlist = false;
 			}
 		}
 	}
@@ -155,44 +193,46 @@ void bookmark_automatic::updateDummy() {
 
 	if (playback_control_ptr->get_now_playing(dbHandle_item)) {
 
-		bool blocation_ok = false;
+		bool b_done = false;
 
 		pfc::string_formatter songDesc;
 		titleformat_object::ptr desc_format;
 		static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(desc_format, cfg_desc_format.get_value().c_str());
 
 		pfc::string8 songPath = dbHandle_item->get_path();
+
 		if (checkDummyIsRadio(songPath)) {
-			blocation_ok = playback_control::get()->playback_format_title(NULL, songDesc, desc_format, NULL, playback_control::display_level_all);
-			if (!blocation_ok) {
-				songDesc << "Could not generate Description.";
-			}
+			b_done = playback_control::get()->playback_format_title(NULL, songDesc, desc_format, NULL, playback_control::display_level_all);
 		}
 		else {
-			blocation_ok = dbHandle_item->format_title(NULL, songDesc, desc_format, NULL);
-			if (!blocation_ok) {
-				songDesc << "Could not generate Description.";
-			}
+			b_done = dbHandle_item->format_title(NULL, songDesc, desc_format, NULL);
 		}
 
-		size_t index_playlist;
+		if (!b_done) {
+			songDesc << "Could not generate description.";
+		}
+
 		pfc::string8 playing_playlist_name;
 		GUID guid_playing_playlist = pfc::guid_null;
 
 		auto pl_man = playlist_manager_v5::get();
 
-		size_t index_playing_playlist = pl_man->get_playing_playlist();
-		bool has_playlist = index_playing_playlist != SIZE_MAX;
+		bool playlist_available = false;
 
 		size_t index_item;
-		has_playlist &= pl_man->playlist_find_item(index_playing_playlist, dbHandle_item, index_item);
+		size_t index_playlist;
+		auto check_available = pl_man->get_playing_item_location(&index_playlist, &index_item);
+		if (check_available) {
+			bool bres = pl_man->get_playing_item_location(&index_playlist, &index_item);
+			playlist_available = pl_man->playlist_find_item(index_playlist, dbHandle_item, index_item);
+		}
 
-		if (has_playlist) {
+		if (!check_available || playlist_available) {
 
-			blocation_ok &= pl_man->get_playing_item_location(&index_playlist, &index_item);
-			blocation_ok &= pl_man->playlist_get_name(index_playlist, playing_playlist_name);
+			b_done &= pl_man->get_playing_item_location(&index_playlist, &index_item);
+			b_done &= pl_man->playlist_get_name(index_playlist, playing_playlist_name);
 
-			if (blocation_ok) {
+			if (b_done) {
 				FB2K_console_print_v("<update dummy> - Item location: ", playing_playlist_name);
 				guid_playing_playlist = pl_man->playlist_get_guid(index_playlist);
 			}
@@ -204,15 +244,15 @@ void bookmark_automatic::updateDummy() {
 
 			//todo: radio station without playlist ???
 			if (dummy.isRadio(songPath) && !dummy.desc.get_length() && !dummy.dyna) {
-				blocation_ok = false;
+				b_done = false;
 			}
 			else {
-				blocation_ok = true;
+				b_done = true;
 			}
 		}
 
-		m_updatePlaylist = !blocation_ok;
-		m_updatePlaylist &= dummy.need_loc_retries <= LOC_RETRIES;
+		m_updating = !b_done;
+		m_updating &= dummy.need_loc_retries <= LOC_RETRIES;
 
 		//TODO: graceful failure?!
 
@@ -235,8 +275,11 @@ void bookmark_automatic::updateDummy() {
 		}
 
 		dummy.subsong = dbHandle_item->get_subsong_index();
-		dummy.playlist = playing_playlist_name;
-		dummy.guid_playlist = guid_playing_playlist;
+		if (playlist_available) {
+			dummy.playlist = playing_playlist_name;
+			dummy.guid_playlist = guid_playing_playlist;
+			dummy.need_playlist = !playlist_available;
+		}
 		gimme_date(dummy);
 
 		//dyna
@@ -245,11 +288,9 @@ void bookmark_automatic::updateDummy() {
 			dummy.comment = station_name;
 		}
 
-		if (m_updatePlaylist) {
+		if (m_updating) {
 			++dummy.need_loc_retries;
 		}
-		dummy.need_playlist = m_updatePlaylist && dummy.need_loc_retries <= LOC_RETRIES;
-
 	}
 	else {
 		if (!core_api::is_shutting_down()) {
@@ -258,7 +299,7 @@ void bookmark_automatic::updateDummy() {
 	}
 }
 
-bool bookmark_automatic::CheckAutoFilter() {
+bool bookmark_automatic::CheckAutoPlaylistFilter() {
 	if (cfg_autosave_filter_newtrack.get()) {
 		//Obtain individual names in the filter
 		std::vector<std::string> allowedPlaylists;
@@ -296,8 +337,6 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 		return false;
 	}
 
-	//TODO: what if there is no valid song name?
-
 	metadb_handle_ptr track_bm;
 	metadb_handle_ptr track_current;
 
@@ -322,6 +361,7 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 
 	if (!core_api::is_shutting_down()) {
 		if (bsamepath && (bradio_restored || bdummy_restored)) {
+			ResetRestoredDummy();
 			return false;
 		}
 		else {
@@ -329,9 +369,11 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 		}
 	}
 
-	if (!CheckAutoFilter()) {
-		if (cfg_verbose) console::formatter() << "Filter is active and did not match, do not store a bookmark.";
+	if (!CheckAutoPlaylistFilter()) {
+		FB2K_console_print_v("Filter is active and did not match, do not store a bookmark.");
+		//
 		return false;
+		//
 	}
 
 
@@ -339,6 +381,7 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 
 		bool allowed_duplicates = is_cfg_Dupli_Enabled();
 		bool realloc_prev_duplicate = is_cfg_Dupli_Remove_Prev();
+
 		size_t dup_ndx = SIZE_MAX;
 
 		for (auto rit = std::rbegin(masterList); rit != std::rend(masterList); ++rit) {
@@ -377,10 +420,10 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 			//..
 		}
 		else {
-			//The filter was either disabled or matched the current playlist, continue:
-			g_store.AddItem(std::move(bookmark_t(dummy)));
 
+			g_store.AddItem(std::move(bookmark_t(dummy)));
 			g_store.Write();
+
 			FB2K_console_print_v("Dummy stored");
 		}
 
@@ -406,7 +449,7 @@ void bookmark_automatic::SetRestoredDummy(bookmark_t& bm) {
 }
 
 bool bookmark_automatic::isRestoredDummy(const bookmark_t& bm) {
-
+	if (bm.isRadio()) return false;
 	if (restored_dummy.get_time() || pfc::guid_equal(restored_dummy.guid_playlist, bm.guid_playlist) &&
 		(restored_dummy.path.equals(bm.path)) && abs(restored_dummy.get_time() - bm.get_time()) <= 3) {
 		return true;
@@ -415,8 +458,8 @@ bool bookmark_automatic::isRestoredDummy(const bookmark_t& bm) {
 }
 
 bool bookmark_automatic::isRestoredRadioDummy(const bookmark_t& bm) {
-
-	if (bm.isRadio() && pfc::guid_equal(restored_dummy.guid_playlist, bm.guid_playlist) &&
+	if (!bm.isRadio()) return false;
+	if (pfc::guid_equal(restored_dummy.guid_playlist, bm.guid_playlist) &&
 		(restored_dummy.path.equals(bm.path)) && restored_dummy.desc.equals(bm.desc)) {
 		return true;
 	}
