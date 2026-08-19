@@ -502,16 +502,18 @@ void CBookmarkPreferences::on_menu_header_click_block() {
 
 	pfc::string8 currStrFlag = uGetDlgItemText(m_hWnd, IDC_HIDDEN_HEADER_CLICK_BLOCK_FLAG);
 	int tmpFlag = atoi(currStrFlag);
-	int tmpFlagAll = 1 << 0 | 1 << 1 | 1 << 2 | 1 << 3 | 1 << 4 | 1 << 5;
+	
+	enum { CMD_1 = 1, CMD_6 = 6, CMD_ALL, CMD_NONE };
+	//00111111
+	const unsigned int tmpFlagAll = (1u << CMD_6) - 1;
 
-	enum { CMD_1 = 1, CMD_2, CMD_3, CMD_4, CMD_5, CMD_6, CMD_ALL, CMD_NONE };
 	HMENU hSplitMenu = CreatePopupMenu();
 
 	AppendMenu(hSplitMenu, MF_STRING | (tmpFlag & (1 << 0) ? MF_CHECKED : MF_UNCHECKED), CMD_1, L"#");
-	AppendMenu(hSplitMenu, MF_STRING | (tmpFlag & (1 << 1) ? MF_CHECKED : MF_UNCHECKED), CMD_2, L"Time");
-	AppendMenu(hSplitMenu, MF_STRING | (tmpFlag & (1 << 2) ? MF_CHECKED : MF_UNCHECKED), CMD_3, L"Bookmark");
-	AppendMenu(hSplitMenu, MF_STRING | (tmpFlag & (1 << 3) ? MF_CHECKED : MF_UNCHECKED), CMD_4, L"Playlist");
-	AppendMenu(hSplitMenu, MF_STRING | (tmpFlag & (1 << 4) ? MF_CHECKED : MF_UNCHECKED), CMD_5, L"Comment");
+	AppendMenu(hSplitMenu, MF_STRING | (tmpFlag & (1 << 1) ? MF_CHECKED : MF_UNCHECKED), CMD_1 + 1, L"Time");
+	AppendMenu(hSplitMenu, MF_STRING | (tmpFlag & (1 << 2) ? MF_CHECKED : MF_UNCHECKED), CMD_1 + 2, L"Bookmark");
+	AppendMenu(hSplitMenu, MF_STRING | (tmpFlag & (1 << 3) ? MF_CHECKED : MF_UNCHECKED), CMD_1 + 3, L"Playlist");
+	AppendMenu(hSplitMenu, MF_STRING | (tmpFlag & (1 << 4) ? MF_CHECKED : MF_UNCHECKED), CMD_1 + 4, L"Comment");
 	AppendMenu(hSplitMenu, MF_STRING | (tmpFlag & (1 << 5) ? MF_CHECKED : MF_UNCHECKED), CMD_6, L"Date");
 	AppendMenu(hSplitMenu, MF_SEPARATOR, 0, 0);
 	AppendMenu(hSplitMenu, MF_STRING | (tmpFlag == tmpFlagAll ? MF_CHECKED : MF_UNCHECKED), CMD_ALL, L"All");
@@ -522,7 +524,7 @@ void CBookmarkPreferences::on_menu_header_click_block() {
 
 	if (!cmd) return;
 
-	int cmd_ndx = --cmd;
+	int cmd_ndx = cmd - 1;
 
 	if (cmd_ndx >= 0 && cmd_ndx < 6) {
 		//tmpFlag = tmpFlag & (1 << cmd_ndx) ? tmpFlag - (1 << cmd_ndx) : tmpFlag + (1 << cmd_ndx);
