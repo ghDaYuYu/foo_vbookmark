@@ -19,11 +19,14 @@ namespace {
 
 		virtual void on_quit() {
 
-			if (is_cfg_Bookmarking() && cfg_autosave_on_quit.get() && g_bmAuto.checkDummy()) {
-				g_bmAuto.upgradeDummy(g_guiLists);
+			if (is_cfg_Bookmarking() && cfg_autosave_on_quit.get()) {
+
+				if (g_bmAuto.checkDummy()) {
+
+					g_store.AddItem(g_bmAuto.getDummy());
+				}
 			}
 
-			//false = use splitTask (app close blocker)
 			g_store.Write(false);
 		}
 	};
