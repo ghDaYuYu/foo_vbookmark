@@ -62,14 +62,14 @@ static const GUID guid_cfg_header_click_block_flag = { 0xec97bd7c, 0x83b2, 0x4e1
 // defaults
 
 static const pfc::string8 default_cfg_bookmark_desc_format = "%title% - $if2(%album% - ,- )%artist%";
-static const pfc::string8 default_cfg_date_format = "%a %b %d %H:%M:%S %Y";
+static const pfc::string8 default_cfg_date_format = "%y-%m-%d %H:%M";
 static const bool default_cfg_display_ms = false;
 static const pfc::string8 default_cfg_autosave_newtrack_playlists = "Podcatcher";
 
 static const bool default_cfg_autosave_newtrack = false;
 static const bool default_cfg_autosave_focus_newtrack = true;
-static const bool default_cfg_autosave_radio_newtrack = false;
-static const bool default_cfg_autosave_radio_comment = false;
+static const bool default_cfg_autosave_radio_newtrack = true;
+static const bool default_cfg_autosave_radio_comment = true;
 static const bool default_cfg_autosave_filter_newtrack = false;
 static const bool default_cfg_autosave_on_quit = false;
 
@@ -81,7 +81,7 @@ static const pfc::string8 default_cfg_lapse = "10";
 static const int default_cfg_queue_flag = 0;
 static const int default_cfg_status_flag = 0;
 
-static const bool default_cfg_edit_mode = false;
+static const bool default_cfg_edit_mode = true;
 
 static const int default_cfg_misc_flag = 0;
 
