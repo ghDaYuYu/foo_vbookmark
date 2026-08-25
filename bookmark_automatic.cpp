@@ -87,6 +87,7 @@ void bookmark_automatic::updateDummyTime() {
 						bool bdummy_restored = isRestoredDummy(dummy);
 						if (bradio_restored || bdummy_restored) {
 							ResetRestoredDummy();
+							cancelUpdating();
 						}
 					}
 

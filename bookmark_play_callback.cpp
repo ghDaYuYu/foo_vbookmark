@@ -20,6 +20,12 @@ namespace {
 			}
 		}
 		else {
+			if (g_bmAuto.getDummy().isRadio()) {
+				//.. reset in time event
+			}
+			else {
+				g_bmAuto.ResetRestoredDummy();
+			}
 			g_bmAuto.resetDummyAll();
 			g_bmAuto.updateDummy();
 		}
@@ -71,7 +77,7 @@ namespace {
 
 		if (is_cfg_LapseEnabled() && bm.isRadio()) {
 			bcan_autosave_newtrack = false;
-			g_bmAuto.Reset_Update_For_Radio();
+			g_bmAuto.Reset_Update_For_Seek_And_Radio();
 		}
 
 		if (bcan_autosave_newtrack) {
@@ -96,8 +102,9 @@ namespace {
 			return;
 		}
 
-		g_bmAuto.resetDummyAll();
-		g_bmAuto.updateDummyTime();
+		if (is_cfg_Bookmarking() && is_cfg_LapseEnabled()) {
+			g_bmAuto.cancelUpdating();
+		}
 	}
 
 	// time

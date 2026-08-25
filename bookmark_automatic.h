@@ -1,5 +1,5 @@
 #pragma once
-
+#include <mutex>
 #include "bookmark_types.h"
 #include "bookmark_preferences.h"
 
@@ -34,10 +34,6 @@ public:
 		return dummy;
 	}
 
-	const bool isUpdating() {
-		return m_updating;
-	}
-
 	bool getDyna() {
 		return dummy.isRadio() && dummy.dyna;
 	}
@@ -56,9 +52,15 @@ public:
 	bool fetchHelloRadioStationName(pfc::string8 &out);
 
 	bool CheckAutoPlaylistFilter();
+	bool CheckRadioFilter() { return CheckRadioFilter("", cfg_txt_filter.get_value(), cfg_tf_filter.get_value()); }
+	bool CheckRadioFilter(pfc::string8 song_desc, const pfc::string8 p_csvfilters, const pfc::string8 p_tf_filter);
 
 	void updateDummyTime();
 	void updateDummy();
+#ifdef REC_AUDIO
+	bool IsRecording(bool start, pfc::string8 path/*, pfc::string8 artist, pfc::string8 title*/);
+	void StartRecording(std::list< dlg::CListControlBookmark*> guiLists, bool start, pfc::string8 path);
+#endif
 	bool upgradeDummy(std::list< dlg::CListControlBookmark*> guiList);
 
 	void ResetRestoredDummy();
@@ -86,11 +88,21 @@ public:
 
 	void delete_item_ui(size_t index, std::list< dlg::CListControlBookmark*> guiLists);
 	void refresh_ui(bool bselect, bool bensure_visible, std::list< dlg::CListControlBookmark*> guiLists);
-	void Reset_Update_For_Radio() {
+
+	void Reset_Update_For_Seek_And_Radio() {
 		m_updating = true;
 		m_updatePlaylistLapseStart = DBL_MAX;
 	}
 
+	const bool isUpdating() {
+		return m_updating;
+	}
+
+	void cancelUpdating() {
+		m_updatePlaylistLapseStart = DBL_MAX;
+		m_updating = dummy.need_playlist = false;
+		return;
+	}
 private:
 
 	bookmark_t dummy;
@@ -101,6 +113,8 @@ private:
 	double m_updatePlaylistLapse = 0.0;
 	double m_updatePlaylistLapseStart = DBL_MAX;
 	titleformat_object::ptr m_pttf_title = nullptr;
+
+	std::mutex lock_update_time;
 };
 
 #pragma warning( push )

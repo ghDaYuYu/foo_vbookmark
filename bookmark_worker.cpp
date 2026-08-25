@@ -200,6 +200,8 @@ void bookmark_worker::restore(size_t index) {
 					playlist_manager_ptr->playlist_set_selection(index_pl, bit_array_true(), bit_array_false());
 					playlist_manager_ptr->playlist_set_selection_single(index_pl, plpos, true);
 					playlist_manager_ptr->playlist_set_focus_item(index_pl, plpos);
+
+					g_pendingSeek = rec.get_time();
 					playlist_manager_ptr->playlist_execute_default_action(index_pl, plpos);
 				}
 
