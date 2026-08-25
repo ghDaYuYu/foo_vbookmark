@@ -26,6 +26,8 @@
   extern cfg_int cfg_lapse_flag;
 
   extern cfg_string cfg_header_click_block_flag;
+  extern cfg_string cfg_txt_filter;
+  extern cfg_string cfg_tf_filter;
 
 #define QUEUE_RESTORE_TO_FLAG                 1 << 0
 #define QUEUE_FLUSH_FLAG                      1 << 1

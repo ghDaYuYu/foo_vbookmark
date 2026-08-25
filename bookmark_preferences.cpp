@@ -59,6 +59,12 @@ static const GUID guid_cfg_lapse_flag ={ 0xb73e6aaa, 0xafc4, 0x4c24, { 0xbc, 0x0
 // {EC97BD7C-83B2-4E1C-BE43-0A5146C01A3A}
 static const GUID guid_cfg_header_click_block_flag = { 0xec97bd7c, 0x83b2, 0x4e1c, { 0xbe, 0x43, 0xa, 0x51, 0x46, 0xc0, 0x1a, 0x3a } };
 
+// {4DD65DEA-EDD2-47B1-A4C8-4ABAF43D64FB}
+static const GUID guid_cfg_txt_filter = { 0x4dd65dea, 0xedd2, 0x47b1, { 0xa4, 0xc8, 0x4a, 0xba, 0xf4, 0x3d, 0x64, 0xfb } };
+// {4DD65DEA-EDD2-47B1-A4C8-4ABAF43D64FB}
+static const GUID guid_cfg_tf_filter = { 0xb1092fa6, 0x3fa0, 0x4300, { 0xa5, 0x58, 0x3c, 0x10, 0xb6, 0x2e, 0x43, 0xfe } };
+// {B1092FA6-3FA0-4300-A558-3C10B62E43FE}
+
 // defaults
 
 static const pfc::string8 default_cfg_bookmark_desc_format = "%title% - $if2(%album% - ,- )%artist%";
@@ -88,6 +94,9 @@ static const int default_cfg_misc_flag = 0;
 static const int default_cfg_lapse_flag = LAPSE_FLAG_ENABLED;
 
 static const pfc::string8 default_cfg_header_click_block_flag = "0";
+
+static const pfc::string8 default_cfg_txt_filter = "Radio Classic Rock,RockClassics,Breaking News";
+static const pfc::string8 default_cfg_tf_filter = "$if($or($strstr(%title%,ANEWSFM),$cont_radio_filters(%title% %artist%),$in_radio_filters(%title%)),1,0)";
 
 // cfg_var
 
@@ -119,6 +128,9 @@ cfg_int cfg_lapse_flag(guid_cfg_lapse_flag, default_cfg_lapse_flag);
 
 cfg_string cfg_header_click_block_flag(guid_cfg_header_click_block_flag, default_cfg_header_click_block_flag);
 
+cfg_string cfg_txt_filter(guid_cfg_txt_filter, default_cfg_txt_filter.c_str());
+cfg_string cfg_tf_filter(guid_cfg_tf_filter, default_cfg_tf_filter.c_str());
+
 struct boxAndBool_t {
 	int idc;
 	cfg_bool* cfg;
@@ -141,9 +153,13 @@ struct ectrlAndString_t {
 const CDialogResizeHelper::Param resize_params[] = {
 	{IDC_STATIC_PREF_HEADER, 0,0,1,0},
 	{IDC_TITLEFORMAT, 0,0,1,0},
+	{IDC_EDIT_AUTO_TXT_FILTER, 0,0,1,0},
+	{IDC_EDIT_AUTO_TF_FILTER, 0,0,1,0},
+	{IDC_AUTOSAVE_TRACK_FILTER, 0,0,1,0},
 	{IDC_PREVIEW, 0,0,1,0},
 	{IDC_QUEUE_FLAG, 0,0,1,0},
 	{IDC_EDIT_MODE, 0,0,1,0},
+	{IDC_STATUS_FLAG, 1,0,1,0},
 	{IDC_BUTTON_HEADER_CB, 1,0,1,0},
 	{IDC_AUTOSAVE_RADIO_TRACK, 1,0,1,0},
 	{IDC_AUTOSAVE_RADIO_COMMENT_ST, 1,0,1,0},
@@ -153,8 +169,11 @@ const CDialogResizeHelper::Param resize_params[] = {
 	{IDC_STATIC_DISPLAY_MS, 1,0,1,0},
 	{IDC_STATIC_HEADER_LOCK, 1,0,1,0},
 	{IDC_MISC_FLAG_WRITE_ON_EDITS, 1,0,1,0},
+	{IDC_STATIC_DUPLICATES, 1,0,1,0},
 	{IDC_MISC_FLAG_DUP_ENABLED, 1,0,1,0},
 	{IDC_MISC_FLAG_DUP_REMOVE_PREV, 1,0,1,0},
+	{IDC_BUTTON_AUTO_ADD_ACTIVE_PLAYLIST, 1,0,1,0},
+	{IDC_VERBOSE, 1,0,1,0},
 	{IDC_MONITOR, 1,0,1,0},
 };
 
@@ -199,11 +218,14 @@ private:
 	void OnComboChange(UINT uNotifyCode, int nId, CWindow wndCtl);
 	void OnCheckChange(UINT uNotifyCode, int nId, CWindow wndCtl);
 	void on_menu_header_click_block();
+	void on_add_active_playlist();
 
 	bool HasChanged();
 	void OnChanged();
 
-	LRESULT OnNewTrackMessage() { OnChanged(); return 0; }
+	void RefreshTitleFormatResults();
+
+	LRESULT OnNewTrackMessage() { RefreshTitleFormatResults(); return 0; }
 
 	LRESULT OnPaused() { cfgToUi(bai_status_flag); HasChanged(); return 0; }
 
@@ -311,10 +333,6 @@ private:
 		return !buffer.equals(eat.cfg->get_value());
 	}
 
-public:
-
-	std::vector<pfc::string8> m_currentPlNames;
-
 private:
 
 	CDialogResizeHelper m_resize_helper;
@@ -352,6 +370,8 @@ private:
 	boxAndInt_t bai_lapse_flag = { IDC_LAPSE_FLAG, &cfg_lapse_flag, default_cfg_lapse_flag };
 
 	ectrlAndString_t eat_header_click_block_flag = { IDC_HIDDEN_HEADER_CLICK_BLOCK_FLAG, &cfg_header_click_block_flag, default_cfg_header_click_block_flag };
+	ectrlAndString_t eat_txt_filter = { IDC_EDIT_AUTO_TXT_FILTER, &cfg_txt_filter, default_cfg_txt_filter };
+	ectrlAndString_t eat_tf_filter = { IDC_EDIT_AUTO_TF_FILTER, &cfg_tf_filter, default_cfg_tf_filter };
 };
 
 void ConvertString8(const pfc::string8 orig, wchar_t* out, size_t max) {
@@ -429,37 +449,19 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow, LPARAM) {
 
 	cfgToUi(eat_header_click_block_flag);
 
+	cfgToUi(eat_txt_filter);
+	cfgToUi(eat_tf_filter);
+
 	//static header
 
 	HWND wndStaticHeader = uGetDlgItem(IDC_STATIC_PREF_HEADER);
 	m_staticPrefHeader.SubclassWindow(wndStaticHeader);
 	m_staticPrefHeader.PaintHeader();
 
-	//fill playlist combo
-
-	m_currentPlNames.clear();
-	size_t plCount = playlist_manager::get()->get_playlist_count();
-	CComboBox comboBox = GetDlgItem(IDC_CMB_PLAYLISTS);
-
-	for (size_t i = 0; i < plCount; i++) {
-
-		pfc::string8 plName;
-		playlist_manager::get()->playlist_get_name(i, plName);
-
-		m_currentPlNames.emplace_back(plName);
-
-		WCHAR wstr[1024];
-		ConvertString8(plName, wstr, 1024 - 1);
-
-		uSendMessage(comboBox, CB_ADDSTRING, 0, (LPARAM)wstr);
-
-	}
-	SendMessage(comboBox, CB_SETCURSEL, 0, 0);
-
-	comboBox.SetTopIndex(0);
-
 	//dark mode
 	m_dark.AddDialogWithControls(*this);
+
+	RefreshTitleFormatResults();
 
 	return TRUE;
 }
@@ -490,6 +492,48 @@ void CBookmarkPreferences::OnComboChange(UINT uNotifyCode, int nId, CWindow wndC
 	m_callback->on_state_changed();
 }
 
+void CBookmarkPreferences::on_add_active_playlist() {
+
+	size_t act_index = playlist_manager::get()->get_active_playlist();
+	if (act_index == SIZE_MAX) { return; }
+
+	pfc::string newName;
+	playlist_manager::get()->playlist_get_name(act_index, newName);
+
+	//replace all commas with dots (because of the comma-seperated list)
+	newName.replace_char(',', '.');
+
+	pfc::string8 curr_filter;
+	uGetDlgItemText(m_hWnd, IDC_AUTOSAVE_TRACK_FILTER, curr_filter);
+	//check if name already exists
+	std::stringstream ss(curr_filter.c_str());
+	std::string token;
+	while (std::getline(ss, token, ',')) {
+		if (!stricmp_utf8(token.c_str(), newName.c_str())) {
+			//skip
+			return;
+		}
+	}
+
+	FB2K_console_print_v("Adding to auto-bookmarking playlists: ", newName);
+
+	//Add newName to the ui:
+	wchar_t fieldContent[1 + (stringlength * 2)];
+	GetDlgItemTextW(IDC_AUTOSAVE_TRACK_FILTER, (LPTSTR)fieldContent, stringlength);
+
+	if (fieldContent[0] != L"\0"[0]) {
+		wcscat_s(fieldContent, L",");
+	}
+
+	WCHAR wstr[1024];
+	ConvertString8(newName, wstr, 1024 - 1);
+
+	wcscat_s(fieldContent, wstr);
+
+	SetDlgItemText(IDC_AUTOSAVE_TRACK_FILTER, fieldContent);
+
+}
+
 void CBookmarkPreferences::on_menu_header_click_block() {
 
 	CRect rcButton;
@@ -502,7 +546,7 @@ void CBookmarkPreferences::on_menu_header_click_block() {
 
 	pfc::string8 currStrFlag = uGetDlgItemText(m_hWnd, IDC_HIDDEN_HEADER_CLICK_BLOCK_FLAG);
 	int tmpFlag = atoi(currStrFlag);
-	
+
 	enum { CMD_1 = 1, CMD_6 = 6, CMD_ALL, CMD_NONE };
 	//00111111
 	const unsigned int tmpFlagAll = (1u << CMD_6) - 1;
@@ -551,52 +595,11 @@ void CBookmarkPreferences::OnCheckChange(UINT uNotifyCode, int nId, CWindow wndC
 		on_menu_header_click_block();
 		OnChanged();
 	}
-	else if (nId == IDC_BTN_ADD_EXISTING_PLAYLIST) {
-
-		//Todo: add currently selected playlist to the filter edit control
-		CComboBox comboBox = GetDlgItem(IDC_CMB_PLAYLISTS);
-		int selected = comboBox.GetCurSel();
-
-		if (selected >= 0 && static_cast<size_t>(selected) < m_currentPlNames.size()) {
-			pfc::string8 newName;
-			newName += m_currentPlNames[selected];
-
-			//replace all commas with dots (because of the comma-seperated list)
-			newName.replace_char(',', '.');
-
-			pfc::string8 curr_filter;
-			uGetDlgItemText(m_hWnd, IDC_AUTOSAVE_TRACK_FILTER, curr_filter);
-			//check if name already exists
-			std::stringstream ss(curr_filter.c_str());
-			std::string token;
-			while (std::getline(ss, token, ',')) {
-				if (!stricmp_utf8(token.c_str(), newName.c_str())) {
-					//skip
-					return;
-				}
-			}
-
-			FB2K_console_print_v("Adding to auto-bookmarking playlists: ", newName);
-
-			//Add newName to the ui:
-			wchar_t fieldContent[1 + (stringlength * 2)];
-			GetDlgItemTextW(IDC_AUTOSAVE_TRACK_FILTER, (LPTSTR)fieldContent, stringlength);
-
-			if (fieldContent[0] != L"\0"[0]) {
-				wcscat_s(fieldContent, L",");
-			}
-
-			WCHAR wstr[1024];
-			ConvertString8(newName, wstr, 1024 - 1);
-
-			wcscat_s(fieldContent, wstr);
-
-			SetDlgItemText(IDC_AUTOSAVE_TRACK_FILTER, fieldContent);
-
-			return; 
-		}
-
-	} else {
+	else if (nId == IDC_BUTTON_AUTO_ADD_ACTIVE_PLAYLIST) {
+		on_add_active_playlist();
+		OnChanged();
+	}
+	else {
 
 		OnChanged();
 	}
@@ -644,6 +647,9 @@ void CBookmarkPreferences::reset() {
 	defToUi(bai_lapse_flag, LAPSE_FLAG_ENABLED, IDC_LAPSE_FLAG);
 
 	defToUi(eat_header_click_block_flag);
+
+	defToUi(eat_txt_filter);
+	defToUi(eat_tf_filter);
 
 	OnChanged();
 }
@@ -703,12 +709,16 @@ void CBookmarkPreferences::apply() {
 
 	uiToCfg(eat_header_click_block_flag);
 
+	uiToCfg(eat_txt_filter);
+	uiToCfg(eat_tf_filter);
+
 	if (bneedReload) {
 		for (auto gui : g_guiLists) {
 			gui->ReloadItems(bit_array_true());
 		}
 	}
 
+	RefreshTitleFormatResults();
 	OnChanged();
 }
 
@@ -757,17 +767,52 @@ bool CBookmarkPreferences::HasChanged() {
 
 	result |= isUiChanged(eat_header_click_block_flag);
 
+	result |= isUiChanged(eat_txt_filter);
+	result |= isUiChanged(eat_tf_filter);
 	return result;
 }
 
-void CBookmarkPreferences::OnChanged() {
+namespace fltr = filters;
+
+void CBookmarkPreferences::RefreshTitleFormatResults() {
+
+	//todo: rev apply not needed
+	//      once desc title format is modded it runs on each keystroke
+	pfc::string8 titleformat = uGetDlgItemText(m_hWnd, IDC_TITLEFORMAT);
+	pfc::string8 radio_filters = uGetDlgItemText(m_hWnd, IDC_EDIT_AUTO_TXT_FILTER);
+	pfc::string8 tf_filter = uGetDlgItemText(m_hWnd, IDC_EDIT_AUTO_TF_FILTER);
 
 	titleformat_object::ptr p_script;
-	pfc::string8 titleformat = uGetDlgItemText(m_hWnd, IDC_TITLEFORMAT);
 	static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(p_script, titleformat);
 
 	pfc::string_formatter songDesc;
-	if (!m_playback_control->playback_format_title(NULL, songDesc, p_script, NULL, playback_control::display_level_all)) {
+	bookmark_t bm = g_bmAuto.getDummy();
+
+	radio_filter_titleformat_hook ra_hook;
+	std::vector<pfc::string8>vfilters;
+
+	fltr::get_filters(radio_filters, vfilters);
+	ra_hook.setData(vfilters);
+
+	bool playback_ok = m_playback_control->playback_format_title(&ra_hook, songDesc, p_script, NULL, playback_control::display_level_all);
+	
+	if (playback_ok) {
+
+		size_t pri_pos = SIZE_MAX;
+		pfc::string8 tmpstr;
+
+		if (bm.isRadio()) {
+			//todo: getting the filters again
+			bool check_pass = g_bmAuto.CheckRadioFilter(songDesc, radio_filters, tf_filter);
+
+			fltr::radio_nfo_type rnt;
+			fltr::get_radio_nfo(songDesc, rnt);
+
+			pri_pos = fltr::parse_radio_info(rnt, &ra_hook, songDesc, titleformat);
+			songDesc = PFC_string_formatter() << (!check_pass ? "(filtered) " : "") << songDesc;
+		}
+	}
+	else {
 		songDesc << "(resume playback to generate track description)";
 	}
 
