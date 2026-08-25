@@ -73,12 +73,14 @@ public:
 	void Write(bool thread_pool = true) {
 
 		if (!m_is_dirty) {
+			FB2K_console_print_v("Saving... nothing to do.");
 			return;
 		}
 
 		if (thread_pool) {
 
 			if (!is_cfg_Instant_Write()) {
+				FB2K_console_print_v("Saving later.");
 				return;
 			}
 
@@ -92,6 +94,7 @@ public:
 				try {
 					this->m_persist.writeDataFileJSON(this->m_masterList);
 					this->m_is_dirty = false;
+					FB2K_console_print_v("Saved.");
 				}
 				catch (std::exception const& /*e*/) {
 					//..

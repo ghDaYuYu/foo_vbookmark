@@ -225,7 +225,7 @@ namespace dlg {
 				(*it)->SetFocusItem(item);
 			}
 
-			FB2K_console_print_v("Created Bookmark, saving to file...");
+			FB2K_console_print_v("Bookmark stored.");
 
 			g_store.Write();
 		}

@@ -78,7 +78,14 @@ void bookmark_automatic::updateDummyTime() {
 			// loc available
 
 			if (!dummy.need_playlist) {
-				FB2K_console_print_v("Track details available, checking delay... ", dummy.desc);
+				if (is_cfg_LapseEnabled()) {
+					if (m_updatePlaylistLapse < 1 || atoi(cfg_lapse.get_value()) - m_updatePlaylistLapse < 1) {
+						FB2K_console_print_v("Track details ready, checking delay... ", dummy.desc);
+					}
+				}
+				else {
+					FB2K_console_print_v("Track details ready, checking delay... ", dummy.desc);
+				}
 			}
 
 			if (is_cfg_LapseEnabled()) {
@@ -252,11 +259,10 @@ void bookmark_automatic::updateDummy() {
 			b_done &= pl_man->playlist_get_name(index_playlist, playing_playlist_name);
 
 			if (b_done) {
-				FB2K_console_print_v("<update dummy> - Item location: ", playing_playlist_name);
 				guid_playing_playlist = pl_man->playlist_get_guid(index_playlist);
 			}
 			else {
-				FB2K_console_print_v("<update dummy> - Fetching item location...");
+				//
 			}
 		}
 		else {
@@ -272,8 +278,6 @@ void bookmark_automatic::updateDummy() {
 
 		m_updating = !b_done;
 		m_updating &= dummy.need_loc_retries <= LOC_RETRIES;
-
-		//TODO: graceful failure?!
 
 		dummy.set_time(playback_control_ptr->playback_get_position());
 		dummy.path = songPath;
@@ -440,10 +444,13 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 		return false;
 	}
 
+	FB2K_console_print_v("Preparing to store.");
+
 	size_t old_size = masterList.size();
 
 	if (dummy.desc.length() == 0) {
 		// nothing to do
+		FB2K_console_print_v("Skip save, no dummy description found.");
 		return false;
 	}
 
@@ -472,6 +479,7 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 	if (!core_api::is_shutting_down()) {
 		if (bsamepath && (bradio_restored || bdummy_restored)) {
 			ResetRestoredDummy();
+			FB2K_console_print_v("Skipping, bm was being restored");
 			return false;
 		}
 		else {
@@ -550,6 +558,7 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 					if (!dummy.need_playlist && (brev_time && brev_path_guid_subsong)) {
 						FB2K_console_print_v("Skipping duplicated bookmark: ", dummy.path);
 					}
+					FB2K_console_print_v("Nothing to do.");
 					// nothing to do
 					return false;
 				}
