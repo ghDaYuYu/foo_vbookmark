@@ -7,12 +7,12 @@
 //ref. to bookmark_dialog.cpp
 void bbookmarkHook_store();
 void bbookmarkHook_restore();
-void bbookmarkHook_restoreActivePlaylist(size_t last_played);
+void bbookmarkHook_restoreActivePlaylist(size_t last_played, bool check_file);
 void bbookmarkHook_clear();
 
 bool bbookmarkHook_canStore();
 bool bbookmarkHook_canRestore();
-bool bbookmarkHook_canRestoreActivePlaylist(size_t &last_played);
+bool bbookmarkHook_canRestoreActivePlaylist(size_t &last_played, bool check_file);
 bool bbookmarkHook_canClear();
 
 unsigned contextmenu_item_foo_vb::get_num_items()
@@ -253,28 +253,28 @@ bool contextmenu_item_node_restore_active::get_display_data(pfc::string_base& p_
 	metadb_handle_ptr mhp;
 	auto np = playback_control_v3::get()->get_now_playing(mhp);
 	size_t last_played = SIZE_MAX;
-	if (!bbookmarkHook_canRestoreActivePlaylist(last_played)) {
+	if (!bbookmarkHook_canRestoreActivePlaylist(last_played, false)) {
 		p_displayflags = FLAG_DISABLED_GRAYED;
 	}
 	else {
 		p_displayflags = 0;
 	}
 	p_displayflags = 0;
-	p_out = "Restore last active playlist bookmark";
+	p_out = "Restore last bookmark from the active playlist";
 	return true;
 }
 
 bool contextmenu_item_node_restore_active::get_description(pfc::string_base& p_out)
 {
-	p_out = "Restore last active playlist bookmark";
+	p_out = "Restore last bookmark from the active playlist";
 	return true;
 }
 
 void contextmenu_item_node_restore_active::execute(metadb_handle_list_cref p_data, const GUID& p_caller)
 {
 	size_t last_played = SIZE_MAX;
-	if (bbookmarkHook_canRestoreActivePlaylist(last_played)) {
-		bbookmarkHook_restoreActivePlaylist(last_played);
+	if (bbookmarkHook_canRestoreActivePlaylist(last_played, true)) {
+		bbookmarkHook_restoreActivePlaylist(last_played, true);
 	}
 }
 

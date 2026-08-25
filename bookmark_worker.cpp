@@ -108,7 +108,7 @@ void bookmark_worker::restore(size_t index) {
 		g_bmAuto.SetRestoredDummy(rec);
 
 		if (!(bool)rec.path.get_length()) {
-			FB2K_console_print_v("Restore Bookmark failed...no track in bookmark.");
+			FB2K_console_print_v("Restore Bookmark failed with empty path in bookmark.");
 			return;
 		}
 
@@ -116,7 +116,7 @@ void bookmark_worker::restore(size_t index) {
 			abort_callback_impl p_abort;
 			try {
 				if (!filesystem_v3::g_exists(rec.path.c_str(), p_abort)) {
-					FB2K_console_print_e("Error restoring bookmark... object not found.");
+					FB2K_console_print_e(PFC_string_formatter() << "Error restoring bookmark... object not found: " << rec.path);
 					return;
 				}
 			}

@@ -12,12 +12,12 @@ static mainmenu_group_popup_factory g_mainmenu_group(guid_vbookmark_main_menu_gr
 //ref. to bookmark_dialog.cpp
 void bbookmarkHook_store();
 void bbookmarkHook_restore();
-void bbookmarkHook_restoreActivePlaylist(size_t last_played);
+void bbookmarkHook_restoreActivePlaylist(size_t last_played, bool check_file = false);
 void bbookmarkHook_clear();
 
 bool bbookmarkHook_canStore();
 bool bbookmarkHook_canRestore();
-bool bbookmarkHook_canRestoreActivePlaylist(size_t& last_played);
+bool bbookmarkHook_canRestoreActivePlaylist(size_t& last_played, bool check_file = false);
 
 bool bbookmarkHook_canClear();
 
@@ -103,12 +103,14 @@ public:
 			if (bbookmarkHook_canRestore())
 				bbookmarkHook_restore();
 			break;
-		case cmd_restoreActivePlaylistLastPlayed:
-			if (last_played != SIZE_MAX || bbookmarkHook_canRestoreActivePlaylist(last_played)) {
-				bbookmarkHook_restoreActivePlaylist(last_played);
+		case cmd_restoreActivePlaylistLastPlayed: {
+			size_t last_played = SIZE_MAX;
+			if (bbookmarkHook_canRestoreActivePlaylist(last_played, true)) {
+				bbookmarkHook_restoreActivePlaylist(last_played, true);
 				last_played = SIZE_MAX;
 			}
 			break;
+		}
 		case cmd_clearBookmarks:
 			if (bbookmarkHook_canClear())
 				bbookmarkHook_clear();

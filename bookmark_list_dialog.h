@@ -261,14 +261,30 @@ namespace dlg {
 				|| g_store.Size();
 		}
 
-		static bool canRestoreActivePlaylist(size_t &ndx_last_played) {
+		static bool canRestoreActivePlaylist(size_t &ndx_last_played, bool check_file = false) {
 			ndx_last_played = SIZE_MAX;
 			size_t act_playlist = playlist_manager_v6::get()->get_active_playlist();
 			if (act_playlist != SIZE_MAX) {
 				GUID plgui = playlist_manager_v6::get()->playlist_get_guid(act_playlist);
 				auto bmlist = g_store.GetMasterList();
-				auto it = std::find_if(bmlist.rbegin(), bmlist.rend(), [plgui](const bookmark_t& bm) {
-					return pfc::guid_equal(bm.guid_playlist, plgui); });
+				bool file_exists = false;
+				auto it = std::find_if(bmlist.rbegin(), bmlist.rend(), [plgui, check_file](const bookmark_t& bm) {
+					bool bm_found = pfc::guid_equal(bm.guid_playlist, plgui);
+
+					bool bm_file_check = true;
+					if (check_file && bm_found && bm.path.startsWith("file")) {
+						abort_callback_impl p_abort;
+							try {
+							if (!filesystem_v3::g_exists(bm.path.c_str(), p_abort)) {
+								bm_file_check = false;
+							}
+						}
+						catch (exception_aborted) {
+							bm_file_check = false;
+						}
+					}
+					bm_found &= bm_file_check;
+					return bm_found; });
 				if (it != bmlist.rend()) {
 					ndx_last_played = bmlist.size() - std::distance(bmlist.rbegin(), it) - 1;
 				}
