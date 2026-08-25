@@ -15,6 +15,8 @@
 
 #include "header_static.h"
 
+#include "utils.h"
+#include "radio_filter_titleformat_hook.h"
 #include "bookmark_core.h"
 #include "bookmark_automatic.h"
 #include "bookmark_list_control.h"
@@ -819,6 +821,16 @@ void CBookmarkPreferences::RefreshTitleFormatResults() {
 	const pfc::stringcvt::string_os_from_utf8 os_tag_name(songDesc);
 
 	SetDlgItemTextW(IDC_PREVIEW, os_tag_name);
+	OnComboChange(0, IDC_CMB_DATEFORMAT, NULL);
+}
+
+void CBookmarkPreferences::OnChanged() {
+
+	bool changed_desc_tf = isUiChanged(eat_format);
+
+	if (changed_desc_tf) {
+		RefreshTitleFormatResults();
+	}
 
 	//enable/disable the apply button
 	m_callback->on_state_changed();

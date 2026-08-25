@@ -9,8 +9,12 @@
 #include "bookmark_automatic.h"
 #include "bookmark_list_control.h"
 #include "bookmark_preferences.h"
+#include "utils.h"
+
+#include "radio_filter_titleformat_hook.h"
 
 using namespace glb;
+namespace fltr = filters;
 
 void bookmark_automatic::updateDummyTime() {
 
@@ -203,7 +207,21 @@ void bookmark_automatic::updateDummy() {
 		pfc::string8 songPath = dbHandle_item->get_path();
 
 		if (checkDummyIsRadio(songPath)) {
+
 			b_done = playback_control::get()->playback_format_title(NULL, songDesc, desc_format, NULL, playback_control::display_level_all);
+
+			radio_filter_titleformat_hook ra_hook;
+			std::vector<pfc::string8>vfilters;
+
+			fltr::get_filters(cfg_txt_filter.get_value(), vfilters);
+			ra_hook.setData(vfilters);
+
+
+			fltr::radio_nfo_type rnt;
+			fltr::get_radio_nfo(songDesc, rnt);
+
+			size_t pri_pos = fltr::parse_radio_info(rnt, &ra_hook, songDesc, cfg_desc_format.get_value());
+			//
 		}
 		else {
 			b_done = dbHandle_item->format_title(NULL, songDesc, desc_format, NULL);
@@ -323,7 +341,98 @@ bool bookmark_automatic::CheckAutoPlaylistFilter() {
 
 	return true;
 }
+
+bool bookmark_automatic::CheckRadioFilter(pfc::string8 song_desc, const pfc::string8 p_csvfilters, const pfc::string8 p_tf_filter) {
+
+	bool bres = true;
+
+	radio_filter_titleformat_hook ra_hook;
+	std::vector<pfc::string8>vfilters;
+
+	pfc::string8 songDesc = song_desc.get_length() ? song_desc : dummy.get_name(true);
+
+	fltr::get_filters(p_csvfilters, vfilters);
+	ra_hook.setData(vfilters);
+
+	pfc::string8 flt_in_csv;
+	std::vector<pfc::string8>vfields;
+
+	std::pair<size_t, size_t> primary_sig = fltr::get_radio_info_sigfields(songDesc, vfields);
+
+	if (!vfields.size()) vfields.push_back(songDesc);
+
+	std::pair<size_t, size_t> pres = fltr::filters_in_fields(vfields, vfilters);
+
+	if (pres == std::pair(SIZE_MAX, SIZE_MAX)) {
+		FB2K_console_print_v("RF allowed");
+	}
+	else if (pres.first <= fltr::kMinRadioFields) {
+		FB2K_console_print_v("RF blocked, skipping bm. Filter: ", vfilters[pres.second], ", primary field: ", vfields[pres.first]);
+		//todo: testing TF, should return.
+		bres = false;
+	}
+	else {
+		if (pres.second < SIZE_MAX) {
+			FB2K_console_print_v("RF allowed, bm passed. Filter: ", vfilters[pres.second], ", field: ", vfields[pres.first]);
+		}
+		else {
+			FB2K_console_print_v("RF allowed, bm passed.");
+		}
+	}
+
+	FB2K_console_print_v("RF running TF filter...");
+
+	pfc::string_formatter sf_filter;
+	pfc::string8 filter_res;
+
+	bool b_done;
+	if (vfields.size() > fltr::kMinRadioFields) {
+		//todo: it is running get_radio_info_sigfields again
+		fltr::radio_nfo_type rnt{ songDesc, primary_sig, vfields };
+		size_t ires = fltr::parse_radio_info(rnt, &ra_hook, filter_res, p_tf_filter.c_str());
+		b_done = ires != SIZE_MAX;
+	}
+	else {
+		titleformat_object::ptr tfo_filter;
+		static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(tfo_filter, p_tf_filter.c_str());
+		b_done = playback_control::get()->playback_format_title(NULL, filter_res, tfo_filter, NULL, playback_control::display_level_all);
+	}
+	if (b_done)
+	{
+		if (pfc::string_is_numeric(filter_res)) {
+			if (atoi(filter_res) != 0) {
+				FB2K_console_print_v("RF TF blocked, skipping bm. Num. val > 0 : ", filter_res);
+				bres &= false;
+			}
+			else {
+				FB2K_console_print_v("RF TF allowed. Num. val: ", filter_res);
+			}
+		}
+		else {
+
+			pfc::string8 tmpstr;
+			if (std::find_if(vfilters.begin(), vfilters.end(), [filter_res](const pfc::string8 s)
+				{ return s.equals(filter_res); }) != vfilters.end()) {
+				FB2K_console_print_v("RF TF blocked with MATCH in filters, skipping bm. Filter: ", filter_res);
+				bres &= false;
+			}
+		}
+	}
+	else {
+		FB2K_console_print_v("RF TF error running expression.");
+	}
+
+	return bres;
+}
+
 bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> guiLists) {
+
+	if (dummy.isRadio()) {
+
+		if (!CheckRadioFilter()) {
+			return false;
+		}
+	}
 
 	const std::vector<bookmark_t>& masterList = g_store.GetMasterList();
 
@@ -383,32 +492,63 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 		bool allowed_duplicates = is_cfg_Dupli_Enabled();
 		bool realloc_prev_duplicate = is_cfg_Dupli_Remove_Prev();
 
+		size_t radio_signa_len = SIZE_MAX;
+
+		if (dummy.isRadio()) {
+			//todo:
+			radio_filter_titleformat_hook ra_hook;
+			std::vector<pfc::string8>vfilters;
+			fltr::get_filters( cfg_txt_filter.get_value(), vfilters);
+			ra_hook.setData(vfilters);
+			//
+			fltr::radio_nfo_type rnt;
+			fltr::get_radio_nfo(dummy.get_name(true), rnt);
+
+			radio_signa_len = fltr::parse_radio_info(rnt, &ra_hook, dummy.desc, cfg_desc_format.get_value().c_str());
+		}
+
 		size_t dup_ndx = SIZE_MAX;
 
 		for (auto rit = std::rbegin(masterList); rit != std::rend(masterList); ++rit) {
-			//rev. renames
-			bool brevstart = dummy.get_time() < 2 * KMin_Lapse;
-			bool brevtime = abs(rit->get_time() - dummy.get_time()) <= 2 * KMin_Lapse;
-			bool brevpath = rit->path.equals(dummy.path) && pfc::guid_equal(rit->guid_playlist, dummy.guid_playlist);
-			brevpath = brevpath && rit->subsong == dummy.subsong;
-			bool brevradio = !dummy.isRadio() || (rit->desc.equals(dummy.desc));
 
-			if (dummy.need_playlist || (brevtime && brevpath && brevradio)) {
+			//rev. more renames
 
-				if (allowed_duplicates && brevstart) {
+			bool brev_start = dummy.get_time() < 2 * KMin_Lapse;
+			bool brev_time = abs(rit->get_time() - dummy.get_time()) <= 2 * KMin_Lapse;
+			bool brev_path_guid_subsong = rit->path.equals(dummy.path) && pfc::guid_equal(rit->guid_playlist, dummy.guid_playlist);
+			brev_path_guid_subsong = brev_path_guid_subsong && rit->subsong == dummy.subsong;
+			bool brev_desc_or_radio = !dummy.isRadio() || (rit->desc.equals(dummy.desc));
+
+			bool bradio_same_desc_any_time = dummy.isRadio() && brev_path_guid_subsong;
+
+			//sig
+			if (radio_signa_len != SIZE_MAX && rit->desc.get_length() >= radio_signa_len) {
+				bradio_same_desc_any_time &= rit->desc.subString(0, radio_signa_len).equals(dummy.desc.subString(0, radio_signa_len));
+			}
+			else {
+				bradio_same_desc_any_time &= dummy.isRadio() && brev_path_guid_subsong && rit->desc.equals(dummy.desc);
+			}
+			//
+
+			if (dummy.need_playlist || (brev_time && brev_path_guid_subsong && brev_desc_or_radio) || bradio_same_desc_any_time) {
+
+				if (allowed_duplicates && (brev_start)) {
+
 					dup_ndx = std::distance(std::rbegin(masterList), rit);
 					dup_ndx = masterList.size() - dup_ndx - 1;
+
 					if (realloc_prev_duplicate) {
 						bit_array_bittable changeMask(bit_array_false(), masterList.size());
 						changeMask.set(dup_ndx, true);
 						g_store.Remove(changeMask);
+						FB2K_console_print_v("Deleted duplicated bmookmark: ", dummy.path);
 						delete_item_ui(dup_ndx, g_guiLists);
 						break;
 					}
 				}
 				else {
-					if (!dummy.need_playlist && (brevtime && brevpath)) {
-						FB2K_console_print_e("Skipping duplicated bookmark: ", dummy.path);
+					if (!dummy.need_playlist && (brev_time && brev_path_guid_subsong)) {
+						FB2K_console_print_v("Skipping duplicated bookmark: ", dummy.path);
 					}
 					// nothing to do
 					return false;
@@ -484,7 +624,7 @@ void bookmark_automatic::checkDeletedRestoredDummy(const bit_array& mask, size_t
 	}
 }
 
-void bookmark_automatic::refresh_ui(bool bselect, bool bensure_visible/*, const std::vector<bookmark_t>& masterList*/, std::list< dlg::CListControlBookmark*> guiLists) {
+void bookmark_automatic::refresh_ui(bool bselect, bool bensure_visible, std::list< dlg::CListControlBookmark*> guiLists) {
 	for (auto it = guiLists.begin(); it != guiLists.end(); ++it) {
 
 		dlg::CListControlBookmark* lc = *it;
