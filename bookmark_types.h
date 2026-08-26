@@ -59,6 +59,11 @@ public:
 		name = aname;
 	}
 
+	void assign_desc(pfc::string8 adesc) {
+		name = "";
+		desc = adesc;
+	}
+
 	bool isRadio() const {
 		return isRadio(path);
 	}

@@ -477,7 +477,7 @@ namespace dlg {
 					bresetable_comment |= csel > 1;
 
 					//Contextmenu for listbody
-					enum { ID_STORE = 1, ID_RESTORE, ID_RESET_TIME, ID_RESET_TIME_MS, 
+					enum { ID_STORE = 1, ID_RESTORE, ID_RESET_TIME, ID_RESET_TIME_MS, ID_REFRESH_DESC,
 						ID_ADD_TO_QUEUE, ID_RESET_PLAYLIST, ID_RESET_COMMENT,
 						ID_DEL, ID_CLEAR = 100,
 						ID_ASSIGN_PLAYLIST, ID_ASSIGN_SINGLE_TO_PLAYLIST_ACTIVE_SEL, ID_ASSIGN_MULTI_TO_PLAYLIST_ACTIVE_SEL,
@@ -522,12 +522,13 @@ namespace dlg {
 					}
 					menu.AppendMenu(MF_STRING | (!bupdatable || !bresetable_playlist ? MF_DISABLED | MF_GRAYED : 0), ID_RESET_PLAYLIST, L"Reset pla&ylist");
 					menu.AppendMenu(MF_STRING | (!bupdatable || !bresetable_comment ? MF_DISABLED | MF_GRAYED : 0), ID_RESET_COMMENT, L"Reset co&mment");
+					menu.AppendMenu(MF_STRING, ID_REFRESH_DESC, L"Refres&h bookmark description format");
 					menu.AppendMenu(MF_SEPARATOR);
 
 					InsertMenuItem(menu, submenus_ids[0], true, &submenu_infos[0]);
 
 					menu.AppendMenu(MF_SEPARATOR);
-					menu.AppendMenu(MF_STRING | (!bupdatable || !(bool)csel ? MF_DISABLED | MF_GRAYED : 0), ID_DEL, L"&Remove\tDel");
+					menu.AppendMenu(MF_STRING | (!bupdatable || !(bool)csel ? MF_DISABLED | MF_GRAYED : 0), ID_DEL, L"Remo&ve\tDel");
 					menu.AppendMenu(MF_SEPARATOR);
 
 					if (bsinglesel) {
@@ -544,7 +545,7 @@ namespace dlg {
 					menu.AppendMenu(MF_STRING | (!(bool)csel ? MF_DISABLED | MF_GRAYED : 0), ID_INVERTSEL, L"&Invert selection");
 					menu.AppendMenu(MF_SEPARATOR);
 					menu.AppendMenu(MF_STRING | (is_cfg_Bookmarking() ? MF_UNCHECKED : MF_CHECKED), ID_PAUSE_BOOKMARKS, L"&Pause bookmarking");
-					menu.AppendMenu(MF_STRING, ID_PREF_PAGE, L"Vital Bookmarks pre&ferences...");
+					menu.AppendMenu(MF_STRING, ID_PREF_PAGE, L"&Vital Bookmarks preferences...");
 					menu.AppendMenu(MF_SEPARATOR);
 					menu.AppendMenu(MF_STRING | (!bsinglesel ? MF_DISABLED | MF_GRAYED : 0), ID_CMD_SEL_PROPERTIES, L"Properties\tAlt+ENTER");
 
@@ -560,6 +561,7 @@ namespace dlg {
 						descriptions.Set(ID_INVERTSEL, "Invert selection");
 						descriptions.Set(ID_ASSIGN_PLAYLIST, "Drop selected bookmarks the active playlist then reassign playlist");
 						//descriptions.Set(ID_INVERTSEL, "The primary list's selection determines the bookmark restored by the global restore command.");
+						descriptions.Set(ID_REFRESH_DESC, "Refresh bookmarks by updating the description format as defined in the preference settings");
 
 						cmd = menu.TrackPopupMenuEx(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, descriptions, nullptr);
 					}
@@ -584,7 +586,9 @@ namespace dlg {
 					[[fallthrough]];
 					case ID_RESET_PLAYLIST:
 					[[fallthrough]];
-					case ID_RESET_COMMENT: {
+					case ID_RESET_COMMENT: 
+					[[fallthrough]];
+					case ID_REFRESH_DESC: {
 
 						size_t c = m_guiList.GetItemCount();
 
@@ -616,22 +620,51 @@ namespace dlg {
 								g_store.SetItem(w, rec);
 								changed |= true;
 							}
-							else if (cmd == ID_ASSIGN_PLAYLIST || cmd == ID_ASSIGN_SINGLE_TO_PLAYLIST_ACTIVE_SEL || cmd == ID_ASSIGN_MULTI_TO_PLAYLIST_ACTIVE_SEL) {
+							else if (cmd == ID_ASSIGN_PLAYLIST || cmd == ID_ASSIGN_SINGLE_TO_PLAYLIST_ACTIVE_SEL || cmd == ID_ASSIGN_MULTI_TO_PLAYLIST_ACTIVE_SEL || cmd == ID_REFRESH_DESC) {
 
 								GUID guid;
 								pfc::string8 buffer;
-								size_t act_ndx = playlist_api->get_active_playlist();
-								playlist_api->playlist_get_name(act_ndx, buffer);
-								guid = playlist_api->playlist_get_guid(act_ndx);
 
-								rec.playlist = buffer;
-								rec.guid_playlist = guid;
+								if (cmd != ID_REFRESH_DESC) {
+									size_t act_ndx = playlist_api->get_active_playlist();
+									playlist_api->playlist_get_name(act_ndx, buffer);
+									guid = playlist_api->playlist_get_guid(act_ndx);
+
+									rec.playlist = buffer;
+									rec.guid_playlist = guid;
+								}
 
 								// path
 
-								if (cmd == ID_ASSIGN_SINGLE_TO_PLAYLIST_ACTIVE_SEL || cmd == ID_ASSIGN_MULTI_TO_PLAYLIST_ACTIVE_SEL) {
+								if (cmd == ID_ASSIGN_SINGLE_TO_PLAYLIST_ACTIVE_SEL || cmd == ID_ASSIGN_MULTI_TO_PLAYLIST_ACTIVE_SEL || cmd == ID_REFRESH_DESC) {
 
-									metadb_handle_ptr dbHandle_pl_item = act_playlist_sel_items.get_item(0);
+									metadb_handle_ptr dbHandle_pl_item;
+									if (cmd != ID_REFRESH_DESC) {
+										dbHandle_pl_item = act_playlist_sel_items.get_item(0);
+									}
+									else {
+										if (rec.path.get_length() && rec.path.startsWith("file://")) {
+											abort_callback_impl p_abort;
+											try {
+												if (!filesystem_v3::g_exists(rec.path.c_str(), p_abort)) {
+													FB2K_console_print_e(PFC_string_formatter() << "Skipping refresh bookmark... missing file: " << rec.path);
+													++count_removed_not_found;
+													continue;
+												}
+											}
+											catch (exception_aborted e) {
+												FB2K_console_print_e(PFC_string_formatter() << "Refreshing bookmark interrupted checking file: " << rec.path);
+												break;
+											}
+										}
+										else {
+											FB2K_console_print_e(PFC_string_formatter() << "Skipping refresh bookmark... not a file: " << rec.path);
+											continue;
+										}
+
+										auto metadb_ptr = metadb::get();
+										dbHandle_pl_item = metadb_ptr->handle_create(rec.path.c_str(), rec.subsong);
+									}
 
 									if (w == f) {
 										//once
@@ -641,9 +674,13 @@ namespace dlg {
 									}
 
 									if (pl_location_ok) {
-										rec.path = dbHandle_pl_item->get_path();
-										rec.subsong = dbHandle_pl_item->get_subsong_index();
-										rec.desc = pl_songDesc;
+										if (cmd != ID_REFRESH_DESC) {
+											rec.path = dbHandle_pl_item->get_path();
+											rec.subsong = dbHandle_pl_item->get_subsong_index();
+										}
+										else {
+											rec.assign_desc(pl_songDesc);
+										}
 									}
 								}
 
