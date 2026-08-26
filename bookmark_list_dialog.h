@@ -498,7 +498,7 @@ namespace dlg {
 						submenu_infos[n].cbSize = sizeof(MENUITEMINFO);
 						submenu_infos[n].fMask = MIIM_SUBMENU | MIIM_STRING | MIIM_ID | MIIM_STATE;
 						submenu_infos[n].hSubMenu = submenus[n];
-						submenu_infos[n].dwTypeData = _T("Reassing locatio&ns...");
+						submenu_infos[n].dwTypeData = _T("Reassing locatio&ns");
 						submenu_infos[n].wID = submenus_ids[n];
 						submenu_infos[n].fState = !bupdatable || !bassignable ? MF_DISABLED | MF_GRAYED : 0;
 					}
