@@ -596,6 +596,10 @@ namespace dlg {
 
 						bool pl_location_ok = false;
 						pfc::string_formatter pl_songDesc;
+						titleformat_object::ptr desc_format;
+						static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(desc_format, cfg_desc_format.get_value().c_str());
+
+						size_t count_removed_not_found = 0;
 
 						size_t f = selmask.find_first(true, 0, c);
 						for (size_t w = f; w < c; w = selmask.find_next(true, w, c)) {
@@ -666,10 +670,8 @@ namespace dlg {
 										dbHandle_pl_item = metadb_ptr->handle_create(rec.path.c_str(), rec.subsong);
 									}
 
-									if (w == f) {
-										//once
-										titleformat_object::ptr desc_format;
-										static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(desc_format, cfg_desc_format.get_value().c_str());
+									if (w == f || cmd == ID_REFRESH_DESC) {
+										//first element walk == first
 										pl_location_ok = dbHandle_pl_item->format_title(NULL, pl_songDesc, desc_format, NULL);
 									}
 
