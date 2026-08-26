@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 
 #include "utils.h"
 
@@ -154,6 +154,10 @@ namespace filters {
 
 			for (size_t i = 0; i <= kMinRadioFields; i++) {
 				if (vout[i].get_length()) {
+
+					// no warranty, could be any iteration (artist, song, album...)
+					// but not too relevant for filtering on sig
+
 					switch (i) {
 					case 0:
 						fii.meta_set("title", vout[i].c_str());

@@ -399,7 +399,7 @@ bool bookmark_automatic::CheckRadioFilter(pfc::string8 song_desc, const pfc::str
 	else {
 		titleformat_object::ptr tfo_filter;
 		static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(tfo_filter, p_tf_filter.c_str());
-		b_done = playback_control::get()->playback_format_title(NULL, filter_res, tfo_filter, NULL, playback_control::display_level_all);
+		b_done = playback_control::get()->playback_format_title(&ra_hook, filter_res, tfo_filter, NULL, playback_control::display_level_all);
 	}
 	if (b_done)
 	{
