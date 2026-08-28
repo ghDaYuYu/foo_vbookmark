@@ -1,4 +1,7 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
+#include <regex>
+#include <algorithm>
+
 
 #include "utils.h"
 
@@ -20,12 +23,37 @@ namespace filters {
 		return ltrim(rtrim(str, ch), ch);
 	}
 
-	fc::string8 trim(const pfc::string8& str) {
+	pfc::string8 trim(const pfc::string8& str) {
 		return trim(str, whitespace);
 	}
 
 	size_t check_radio_signature(size_t radio_lensig) {
 		return radio_lensig != SIZE_MAX && radio_lensig >= (kMinRadioFields + kMinRadioFieldsLen) ? radio_lensig : SIZE_MAX;
+	}
+
+	//todo
+
+	bool check_reversed(const std::vector<pfc::string8> vec) {
+		//rev cap done before this
+		size_t cdates = 0;
+		std::smatch result;
+		std::regex pattern("\\d{4}[-]\\d{2}[-]\\d{2}[t]");
+		for (size_t w = kMinRadioFields; w < vec.size(); w++) {
+			const std::string buf(vec[w].toLower());
+			if (std::regex_search(buf, result, pattern)) {
+				cdates++;
+			}
+		}
+
+		// cdates > 1 and year non numeric
+		//"EP~2016~~201~2026-08-26T19:54:40~2026-08-26T19:54:40~Radio - ARTIST~SONG~ALBUM"
+		return (cdates > 1 && vec[3].get_length() != 0 && !pfc::string_is_numeric(vec[3]));
+	}
+
+	void transform_if_first_of_word(char& c)
+	{
+		if ((*(&c - sizeof(char))) == ' ')
+			c = toupper(c);
 	}
 
 	std::pair<size_t, size_t> get_radio_info_sigfields(const pfc::string8 radio_info, std::vector<pfc::string8>& vout) {
@@ -39,10 +67,33 @@ namespace filters {
 			//
 		}
 
-		pfc::chain_list_v2_t<pfc::string8> split_list;
-		pfc::splitStringByChar(split_list, radio_info, '~');
+		//todo
 
-		if (split_list.get_count() <= kMinRadioFields) {
+		pfc::chain_list_v2_t<pfc::string8> split_list;
+		pfc::chain_list_v2_t<pfc::string8> split_list_dbl_pipe;
+		pfc::splitStringByChar(split_list, radio_info, '~');
+		pfc::splitStringBySubstring(split_list_dbl_pipe, radio_info, "||");
+
+		bool piped = false;
+
+		if (split_list.get_count() >= kMinRadioFields) {
+			//..
+		}
+		else if (split_list_dbl_pipe.get_count() >= kMinRadioFields) {
+			piped = true;
+			split_list.remove_all(); split_list.move_from(split_list_dbl_pipe);
+			pfc::string8 bunch_artist = split_list.by_index(kMinRadioFields - 1).get()->c_str();
+			pfc::chain_list_v2_t<pfc::string8> split_list_bunch;
+			pfc::splitStringByChar(split_list_bunch, radio_info, '-');
+			if (split_list_bunch.get_count()) {
+				bunch_artist = trim(split_list_bunch.by_index(split_list_bunch.get_count()-1).get()->c_str());
+				split_list.by_index(kMinRadioFields - 1).get()->set_string(split_list.by_index(1).get()->c_str());
+				split_list.by_index(1).get()->set_string(bunch_artist);
+				split_list.add_item(split_list.by_index(2).get()->c_str());
+				split_list.by_index(2).get()->set_string("");
+			}
+		}
+		else {
 			vout.clear();
 			//
 			return primaries_sig_len;
@@ -56,9 +107,20 @@ namespace filters {
 		size_t sig_len = 0;
 		size_t primary_ok = 0;
 
+		bool bcap = vout.size() > kMinRadioFields;
+
 		for (size_t w = 0; w < vout.size(); w++) {
 
 			vout[w] = trim(split_list.by_index(w).get()->c_str());
+
+			if (bcap && vout[w].get_length() && vout[w].upperCase().equals(vout[w])) {
+				vout[w] = vout[w].toLower();
+				vout[w].set_char(0, pfc::charUpper(vout[w].firstChar()));
+				std::string str = vout[w];
+				std::for_each(str.begin() + 1, str.end(), transform_if_first_of_word);
+				vout[w] = str.c_str();
+			}
+
 			size_t wlen = vout[w].get_length();
 
 			if (w == 0) {
@@ -77,6 +139,36 @@ namespace filters {
 			if (w <= kMinRadioFields) {
 				sig_len += wlen;
 				++sig_len;
+			}
+		}
+
+		//todo
+
+		if (!piped && vout.size() > kMinRadioFields && check_reversed(vout)) {
+			//reverse
+			std::reverse(vout.begin(), vout.end());
+			primary_ok = 0;
+			sig_len = 0;
+
+			for (size_t w = 0; w < vout.size(); w++) {
+				size_t wlen = vout[w].get_length();
+				if (w == 0) {
+					if (wlen) {
+						primary_ok++;
+					}
+					else {
+						primary_ok = SIZE_MAX;
+					}
+				}
+				else {
+					if (primary_ok != SIZE_MAX && w <= kMinRadioFields && wlen) {
+						primary_ok++;
+					}
+				}
+				if (w <= kMinRadioFields) {
+					sig_len += wlen;
+					++sig_len;
+				}
 			}
 		}
 
@@ -152,7 +244,7 @@ namespace filters {
 
 			file_info_impl fii;
 
-			for (size_t i = 0; i <= kMinRadioFields; i++) {
+			for (size_t i = 0; i < kMinRadioFields; i++) {
 				if (vout[i].get_length()) {
 
 					// no warranty, could be any iteration (artist, song, album...)
