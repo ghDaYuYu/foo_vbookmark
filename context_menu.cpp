@@ -163,7 +163,7 @@ contextmenu_item_node* contextmenu_item_node_root_popup_vb::get_child(t_size p_i
 
 GUID contextmenu_item_node_root_popup_vb::get_guid()
 {
-	return pfc::guid_null;
+	return guid_ctx_menu_node_root_popup_vb;
 }
 
 bool contextmenu_item_node_root_popup_vb::is_mappable_shortcut()
@@ -212,8 +212,8 @@ bool contextmenu_item_node_add_vb::get_display_data(pfc::string_base& p_out, uns
 {
 	metadb_handle_ptr mhp;
 	auto np = playback_control_v3::get()->get_now_playing(mhp);
-	if (p_data.get_item(0) != mhp) {
-		p_displayflags = FLAG_DISABLED_GRAYED;
+	if (!p_data.get_count() || p_data.get_item(0) != mhp) {
+			p_displayflags = FLAG_DISABLED_GRAYED;
 	}
 	else {
 		p_displayflags = 0;

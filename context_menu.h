@@ -47,6 +47,10 @@ static const GUID guid_ctx_menu_node_add_bookmark =
 static const GUID guid_ctx_menu_node_restore_playlist =
 { 0xfe6bcf28, 0xf4b8, 0x40d4, { 0x8d, 0x65, 0x7, 0x17, 0xed, 0x73, 0xcc, 0x93 } };
 
+// {E1309F25-643D-44D4-B902-15AFCB23E8B9}
+static const GUID guid_ctx_menu_node_root_popup_vb =
+{ 0xe1309f25, 0x643d, 0x44d4, { 0xb9, 0x2, 0x15, 0xaf, 0xcb, 0x23, 0xe8, 0xb9 } };
+
 class contextmenu_item_node_prop_vb : public contextmenu_item_node_leaf
 {
 public:
