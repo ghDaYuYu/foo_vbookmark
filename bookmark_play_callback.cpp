@@ -40,7 +40,7 @@ namespace {
 		}
 
 		if (g_bmAuto.getDyna()) {
-			FB2K_console_print_v("New dyna track arrived...");
+			FB2K_console_print_v("New dyna track event...");
 		}
 		else {
 			FB2K_console_print_v("New track event...");
@@ -57,41 +57,18 @@ namespace {
 			g_bmAuto.resetDummyAll();
 		}
 
-
 		g_bmAuto.updateDummy();
+		//todo: remove m_updating from updateDummy()
+		g_bmAuto.Reset_Updating();
 
 		g_bmAuto.setDyna(false);
 
 		auto bm = g_bmAuto.getDummy();
 
-		if (!(g_bmAuto.isUpdating() && bm.need_loc_retries <= LOC_RETRIES)) {
-			pfc::string8 q_orphan = !bm.playlist.get_length() ? " (no playlist)" : "";
-			FB2K_console_print_v("New track details... ", bm.desc, q_orphan );
-		}
-		else {
-			return;
-		}
+		g_bmAuto.ResetRestoredDummyTime();
 
-		bool bcan_autosave_newtrack = cfg_autosave_newtrack.get();
-		bcan_autosave_newtrack &= cfg_autosave_radio_newtrack.get() || !bm.isRadio();
+		return;
 
-		if (is_cfg_LapseEnabled() && bm.isRadio()) {
-			bcan_autosave_newtrack = false;
-			g_bmAuto.Reset_Update_For_Seek_And_Radio();
-		}
-
-		if (bcan_autosave_newtrack) {
-			if (g_bmAuto.upgradeDummy(g_guiLists)) {
-				if (is_cfg_Bookmarking()) {
-					g_store.Write();
-					bool bscroll_list = cfg_autosave_focus_newtrack.get();
-					g_bmAuto.refresh_ui(bscroll_list, bscroll_list, g_guiLists);
-				}
-			}
-			else {
-				//..
-			}
-		}
 	}
 
 	// seek
@@ -103,7 +80,9 @@ namespace {
 		}
 
 		if (is_cfg_Bookmarking() && is_cfg_LapseEnabled()) {
+			//
 			g_bmAuto.cancelUpdating();
+			//
 		}
 	}
 
@@ -136,13 +115,13 @@ namespace {
 			metadb_handle_ptr track_current;
 			//Identify current track
 			bool bnowPlaying = playback_control_ptr->get_now_playing(track_current);
+
 			if (bnowPlaying) {
+
 				g_bmAuto.setDyna(true);
 
 				//
-
 				on_playback_new_track(track_current);
-
 				//
 			}
 		}

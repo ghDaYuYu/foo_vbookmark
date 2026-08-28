@@ -3,7 +3,6 @@
 #include "SDK/playback_control.h"
 #include "SDK/playlist.h"
 
-//update playlist
 #include "bookmark_core.h"
 #include "bookmark_store.h"
 #include "bookmark_automatic.h"
@@ -79,12 +78,13 @@ void bookmark_automatic::updateDummyTime() {
 
 			if (!dummy.need_playlist) {
 				if (is_cfg_LapseEnabled()) {
-					if (m_updatePlaylistLapse < 1 || atoi(cfg_lapse.get_value()) - m_updatePlaylistLapse < 1) {
+				//reduced verbose logs
+				if (m_updatePlaylistLapse < 3 || (atoi(cfg_lapse.get_value() - m_updatePlaylistLapse < 1 ) {
 						FB2K_console_print_v("Track details ready, checking delay... ", dummy.desc);
 					}
 				}
 				else {
-					FB2K_console_print_v("Track details ready, checking delay... ", dummy.desc);
+					FB2K_console_print_v("Track details done. ", dummy.desc);
 				}
 			}
 
@@ -99,6 +99,15 @@ void bookmark_automatic::updateDummyTime() {
 						if (bradio_restored || bdummy_restored) {
 							ResetRestoredDummy();
 							cancelUpdating();
+						}
+					}
+
+					//fix empty playlist manually bookmarking before delay expires
+					if (dummy.need_playlist) {
+						//todo: remove m_updating from updateDummy()
+						updateDummy();
+						if (bcan_autosave_newtrack) {
+							m_updating = true;
 						}
 					}
 
@@ -121,6 +130,7 @@ void bookmark_automatic::updateDummyTime() {
 				if (b_data_srv_available && dummy.need_playlist) {
 
 					updateDummy();
+
 					if (is_cfg_LapseEnabled()) {
 
 						if (m_updatePlaylistLapseStart != DBL_MAX) {
@@ -131,12 +141,16 @@ void bookmark_automatic::updateDummyTime() {
 
 				bool bres = upgradeDummy(g_guiLists);
 				m_updatePlaylistLapseStart = DBL_MAX;
-			}
-			else if (cfg_autosave_on_quit.get()) {
-				updateDummy();
+				m_updating = dummy.need_playlist = false;
+
+				//
+
+				return;
+
+				//
 			}
 
-			m_updating = dummy.need_playlist = false;
+
 		}
 		else {
 
@@ -165,14 +179,23 @@ void bookmark_automatic::updateDummyTime() {
 					// AUTO - CREATE
 					bool bres = upgradeDummy(g_guiLists);
 					m_updatePlaylistLapseStart = DBL_MAX;
-				}
-				else if (cfg_autosave_on_quit.get()) {
-					updateDummy();
-				}
+					m_updating = dummy.need_playlist = false;
 
-				m_updating = dummy.need_playlist = false;
+					//
+
+					return;
+
+					//
+				}
 			}
 		}
+
+		//req. for no delays, paused bm, auto-create on_exit...
+		if (dummy.need_playlist) {
+			updateDummy();
+		}
+
+		m_updating = dummy.need_playlist = false;
 	}
 }
 
@@ -262,7 +285,7 @@ void bookmark_automatic::updateDummy() {
 				guid_playing_playlist = pl_man->playlist_get_guid(index_playlist);
 			}
 			else {
-				//
+				//..
 			}
 		}
 		else {
@@ -438,11 +461,11 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 		}
 	}
 
-	const std::vector<bookmark_t>& masterList = g_store.GetMasterList();
-
-	if (dummy.need_playlist) {
+	if (dummy.need_playlist && dummy.need_loc_retries <= LOC_RETRIES) {
 		return false;
 	}
+
+	const std::vector<bookmark_t>& masterList = g_store.GetMasterList();
 
 	FB2K_console_print_v("Preparing to store.");
 
@@ -634,6 +657,7 @@ void bookmark_automatic::checkDeletedRestoredDummy(const bit_array& mask, size_t
 }
 
 void bookmark_automatic::refresh_ui(bool bselect, bool bensure_visible, std::list< dlg::CListControlBookmark*> guiLists) {
+
 	for (auto it = guiLists.begin(); it != guiLists.end(); ++it) {
 
 		dlg::CListControlBookmark* lc = *it;

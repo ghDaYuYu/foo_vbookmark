@@ -132,94 +132,92 @@ void bookmark_worker::restore(size_t index) {
 
 		metadb_handle_ptr track_bm = metadb_ptr->handle_create(rec.path.c_str(), rec.subsong);	//Identify track to restore
 
-			size_t index_pl = ~0;
-			size_t index_item = ~0;
-			bool bplaylist_item_fault = true;
+		size_t index_pl = ~0;
+		size_t index_item = ~0;
+		bool bplaylist_item_fault = true;
 
-			if (pfc::guid_equal(rec.guid_playlist, pfc::guid_null)) {
-				FB2K_console_print_v("Item queued... ", rec.desc);
+		if (pfc::guid_equal(rec.guid_playlist, pfc::guid_null)) {
+			FB2K_console_print_v("Item queued... ", rec.desc);
+		}
+		else {
+			index_pl = playlist_manager_v5::get()->find_playlist_by_guid(rec.guid_playlist);
+
+			bplaylist_item_fault = index_pl == pfc_infinite || !playlist_manager_ptr->playlist_find_item(index_pl, track_bm, index_item);
+			if (bplaylist_item_fault) {
+				//Complain if no playlist of that name exists anymore or item not in playlist
+				FB2K_console_print_v("Item queued... '", rec.playlist, "' playlist/item mismatch.");
 			}
-			else {
-				index_pl = playlist_manager_v5::get()->find_playlist_by_guid(rec.guid_playlist);
+		}
 
-				bplaylist_item_fault = index_pl == pfc_infinite || !playlist_manager_ptr->playlist_find_item(index_pl, track_bm, index_item);
-				if (bplaylist_item_fault) {
-					//Complain if no playlist of that name exists anymore or item not in playlist
-					FB2K_console_print_v("Item queued... '", rec.playlist, "' playlist/item mismatch.");
+		if (is_cfg_Queuing() || bplaylist_item_fault) {
+
+			if (track_bm.get_ptr()) {
+				if (is_cfg_Flush_Queue()) {
+					playlist_manager_ptr->queue_flush();
 				}
-			}
 
-			if (is_cfg_Queuing() || bplaylist_item_fault) {
+				bool bplaying = playback_control_ptr->is_playing();
+				bool bpaused = playback_control_ptr->is_paused();
+				auto cq = playlist_manager_ptr->queue_get_count();
 
-				if (track_bm.get_ptr()) {
-					if (is_cfg_Flush_Queue()) {
-						playlist_manager_ptr->queue_flush();
-					}
+				//todo: if queue is modified after this, seek time will be applied to the wrong item ?
 
-					bool bplaying = playback_control_ptr->is_playing();
-					bool bpaused = playback_control_ptr->is_paused();
-					auto cq = playlist_manager_ptr->queue_get_count();
-
-					//todo: if queue is modified after this, seek time will be applied to the wrong item ?
-
-					if (!(bpaused || cq)) {
-						//only the first item send to an empty queue can be seek
-						g_pendingSeek = rec.get_time();
-					}
-					else {
-						g_pendingSeek = 0.0;
-						g_bmAuto.ResetRestoredDummyTime();
-					}
-
-					if (bplaylist_item_fault) {
-						playlist_manager_ptr->queue_add_item(track_bm);
-					}
-					else {
-						playlist_manager_ptr->queue_add_item_playlist(index_pl, index_item);
-					}
-
-					//todo: rev update dummy relies on new track event
-					if (is_cfg_Queuing() && playlist_manager_ptr->queue_get_count() == 1 && !playback_control_ptr->is_playing()) {
-						//..
-					}
-					else {
-						if ((playlist_manager_ptr->queue_get_count() > 1) && playback_control_ptr->is_playing()) {
-							return;
-						}
-					}
-
-					playback_control_ptr->play_or_unpause();
-				}
-			}
-			else {
-				size_t plpos;
-				playlist_manager_ptr->playlist_find_item(index_pl, track_bm, plpos);
-				if (plpos != ~0) {
-					playlist_manager_ptr->set_active_playlist(index_pl);
-					playlist_manager_ptr->set_playing_playlist(index_pl);
-					playlist_manager_ptr->playlist_set_selection(index_pl, bit_array_true(), bit_array_false());
-					playlist_manager_ptr->playlist_set_selection_single(index_pl, plpos, true);
-					playlist_manager_ptr->playlist_set_focus_item(index_pl, plpos);
-
+				if (!(bpaused || cq)) {
+					//only the first item send to an empty queue can be seek
 					g_pendingSeek = rec.get_time();
-					playlist_manager_ptr->playlist_execute_default_action(index_pl, plpos);
 				}
+				else {
+					g_pendingSeek = 0.0;
+					g_bmAuto.ResetRestoredDummyTime();
+				}
+
+				if (bplaylist_item_fault) {
+					playlist_manager_ptr->queue_add_item(track_bm);
+				}
+				else {
+					playlist_manager_ptr->queue_add_item_playlist(index_pl, index_item);
+				}
+
+				//todo: rev update dummy relies on new track event
+				if (is_cfg_Queuing() && playlist_manager_ptr->queue_get_count() == 1 && !playback_control_ptr->is_playing()) {
+					//..
+				}
+				else {
+					if ((playlist_manager_ptr->queue_get_count() > 1) && playback_control_ptr->is_playing()) {
+						return;
+					}
+				}
+
+				playback_control_ptr->play_or_unpause();
+			}
+		}
+		else {
+			size_t plpos;
+			playlist_manager_ptr->playlist_find_item(index_pl, track_bm, plpos);
+			if (plpos != ~0) {
+				playlist_manager_ptr->set_active_playlist(index_pl);
+				playlist_manager_ptr->set_playing_playlist(index_pl);
+				playlist_manager_ptr->playlist_set_selection(index_pl, bit_array_true(), bit_array_false());
+				playlist_manager_ptr->playlist_set_selection_single(index_pl, plpos, true);
+				playlist_manager_ptr->playlist_set_focus_item(index_pl, plpos);
 
 				g_pendingSeek = rec.get_time();
+				playlist_manager_ptr->playlist_execute_default_action(index_pl, plpos);
+			}
 
-				if (g_pendingSeek == 0.0) { //If a time change was not queued up, the track is either already correct or could not be determined
-					if (!core_api::assert_main_thread()) {
-						FB2K_console_print_v("(Not in main thread)");
-					}
+			g_pendingSeek = rec.get_time();
 
-					FB2K_console_print_v("Restoring time:", rec.get_time());
-
-					playback_control_ptr->playback_seek(rec.get_time());
+			if (g_pendingSeek == 0.0) { //If a time change was not queued up, the track is either already correct or could not be determined
+				if (!core_api::assert_main_thread()) {
+					FB2K_console_print_v("(Not in main thread)");
 				}
 
-				//unpause
-				playback_control_ptr->pause(false);
+				FB2K_console_print_v("Restoring time:", rec.get_time());
+
+				playback_control_ptr->playback_seek(rec.get_time());
 			}
+			//unpause
+			playback_control_ptr->pause(false);
 		}
 	}
 	else {	//Index invalid, fall back to the last entry
@@ -261,11 +259,10 @@ public:
 			});
 
 			g_pendingSeek = 0.0;
-			g_bmAuto.ResetRestoredDummyTime();
 		}
 	}
 
-	// select worker play callbacks
+	// select worker callbacks
 
 	virtual unsigned get_flags() {
 
