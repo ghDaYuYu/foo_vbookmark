@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 namespace filters {
 
@@ -13,7 +13,7 @@ namespace filters {
 	inline pfc::string8 ltrim(const pfc::string8& str, const char* ch = whitespace);
 	inline pfc::string8 rtrim(const pfc::string8& str, const char* ch = whitespace);
 
-	extern size_t get_filters(const pfc::string8 csv_filter, std::vector<pfc::string8>& vout);
+  extern bool is_dyna_double_pipe(const pfc::string radio_info);
 
 	extern std::pair<size_t, size_t> filters_in_fields(const std::vector<pfc::string8> vinfo, const std::vector < pfc::string8> vfilter);
 

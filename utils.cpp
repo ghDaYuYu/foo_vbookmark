@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include <regex>
 #include <algorithm>
 
@@ -25,6 +25,16 @@ namespace filters {
 
 	pfc::string8 trim(const pfc::string8& str) {
 		return trim(str, whitespace);
+	}
+
+	bool is_dyna_double_pipe(const pfc::string radio_info) {
+		bool piped = false;
+		pfc::chain_list_v2_t<pfc::string8> split_list_dbl_pipe;
+		pfc::splitStringBySubstring(split_list_dbl_pipe, radio_info, "||");
+		if (split_list_dbl_pipe.get_count() >= kMinRadioFields) {
+			piped = true;
+		}
+		return piped;
 	}
 
 	size_t check_radio_signature(size_t radio_lensig) {
@@ -77,20 +87,55 @@ namespace filters {
 		bool piped = false;
 
 		if (split_list.get_count() >= kMinRadioFields) {
-			//..
+			if (split_list.get_count() > kMinRadioFields + 1) { //+1 foo_vbookmark
+				pfc::chain_list_v2_t<pfc::string8> split_list_bunch;
+				pfc::string8 bunch_artist;
+				pfc::splitStringByChar(split_list_bunch, split_list.by_index(split_list.get_count() - 1).get()->c_str(), '-');
+				if (split_list_bunch.get_count() < 5) { //or all uppercase
+					//artist song album
+					const pfc::string8 song = split_list.by_index(1).get()->c_str();
+					split_list.by_index(1).get()->set_string(split_list.by_index(0).get()->c_str());
+					split_list.by_index(0).get()->set_string(song);
+				}
+				
+			}
+			else if (split_list.get_count() <= kMinRadioFields + 1) {
+				//artist album song
+				//const pfc::string8 artist = split_list.by_index(0).get()->c_str();
+				const pfc::string8 album = split_list.by_index(2).get()->c_str();
+				const pfc::string8 song = split_list.by_index(1).get()->c_str();
+				split_list.by_index(2).get()->set_string(album); // album
+				split_list.by_index(1).get()->set_string(split_list.by_index(0).get()->c_str()); // artist
+				split_list.by_index(0).get()->set_string(song); // song
+			}
+			else {
+				//..
+			}
 		}
 		else if (split_list_dbl_pipe.get_count() >= kMinRadioFields) {
 			piped = true;
 			split_list.remove_all(); split_list.move_from(split_list_dbl_pipe);
 			pfc::string8 bunch_artist = split_list.by_index(kMinRadioFields - 1).get()->c_str();
 			pfc::chain_list_v2_t<pfc::string8> split_list_bunch;
-			pfc::splitStringByChar(split_list_bunch, radio_info, '-');
-			if (split_list_bunch.get_count()) {
-				bunch_artist = trim(split_list_bunch.by_index(split_list_bunch.get_count()-1).get()->c_str());
+			pfc::splitStringByChar(split_list_bunch, bunch_artist, '-');
+			if (split_list_bunch.get_count() == 6) {
+				bunch_artist = trim(split_list_bunch.by_index(split_list_bunch.get_count() - 1).get()->c_str());
 				split_list.by_index(kMinRadioFields - 1).get()->set_string(split_list.by_index(1).get()->c_str());
 				split_list.by_index(1).get()->set_string(bunch_artist);
 				split_list.add_item(split_list.by_index(2).get()->c_str());
 				split_list.by_index(2).get()->set_string("");
+			}
+			else {
+				bunch_artist = split_list.by_index(1).get()->c_str();
+				pfc::splitStringByChar(split_list_bunch, bunch_artist, '-');
+				if (split_list_bunch.get_count() == 2) {
+					bunch_artist = trim(split_list_bunch.by_index(split_list_bunch.get_count() - 1).get()->c_str());
+					split_list.by_index(kMinRadioFields - 1).get()->set_string(split_list.by_index(1).get()->c_str());
+					split_list.by_index(1).get()->set_string(trim(split_list_bunch.by_index(0).get()->c_str()));
+					split_list.by_index(0).get()->set_string(trim(split_list_bunch.by_index(1).get()->c_str()));
+					split_list.add_item(split_list.by_index(2).get()->c_str());
+					split_list.by_index(2).get()->set_string("");
+				}
 			}
 		}
 		else {

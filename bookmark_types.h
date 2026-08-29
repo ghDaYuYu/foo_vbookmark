@@ -14,6 +14,7 @@ struct bookmark_t {
 private:
 	double time = 0.0;
 	pfc::string8 name;
+	pfc::string8 fdn;
 
 public:
 
@@ -54,15 +55,21 @@ public:
 	const pfc::string8 get_name(bool or_desc) const {
 		return name.get_length() ? name : or_desc ? desc : "";
 	}
+	const pfc::string8 get_fdn() const {
+		return fdn;
+	}
 
 	void set_name(pfc::string8 aname) {
 		name = aname;
 	}
-
+		void set_fdn(pfc::string8 afdn) {
+    		fdn = afdn;
+    	}
 	void assign_desc(pfc::string8 adesc) {
 		name = "";
 		desc = adesc;
 	}
+
 
 	bool isRadio() const {
 		return isRadio(path);

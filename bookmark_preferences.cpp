@@ -790,36 +790,63 @@ void CBookmarkPreferences::RefreshTitleFormatResults() {
 	pfc::string_formatter songDesc;
 	bookmark_t bm = g_bmAuto.getDummy();
 
-	radio_filter_titleformat_hook ra_hook;
-	std::vector<pfc::string8>vfilters;
+	bool playback_ok = false;
 
-	fltr::get_filters(radio_filters, vfilters);
-	ra_hook.setData(vfilters);
+	if (bm.isRadio()) {
 
-	bool playback_ok = m_playback_control->playback_format_title(&ra_hook, songDesc, p_script, NULL, playback_control::display_level_all);
-	
-	if (playback_ok) {
+		pfc::string8 test_songDesc;
+		titleformat_object::ptr p_test_script;
+		static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(p_script, "%title%");
+		bool test_playback_ok = m_playback_control->playback_format_title(NULL, test_songDesc, p_script, NULL, playback_control::display_level_all);
 
-		size_t pri_pos = SIZE_MAX;
-		pfc::string8 tmpstr;
+		filters::radio_nfo_type rnt;
+		filters::get_radio_nfo(test_songDesc, rnt);
 
-		if (bm.isRadio()) {
-			//todo: getting the filters again
-			bool check_pass = g_bmAuto.CheckRadioFilter(songDesc, radio_filters, tf_filter);
+		radio_filter_titleformat_hook ra_hook;
+		std::vector<pfc::string8>vfilters;
 
-			fltr::radio_nfo_type rnt;
-			fltr::get_radio_nfo(songDesc, rnt);
+		fltr::get_filters(radio_filters, vfilters);
+		ra_hook.setData(g_bmAuto.getDummy().get_fdn(), vfilters);
 
-			pri_pos = fltr::parse_radio_info(rnt, &ra_hook, songDesc, titleformat);
-			songDesc = PFC_string_formatter() << (!check_pass ? "(filtered) " : "") << songDesc;
+		playback_ok = parse_radio_info(rnt, &ra_hook, songDesc, titleformat) != SIZE_MAX;
+
+		if (playback_ok) {
+
+
+			titleformat_object::ptr tfo_filter;
+			static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(tfo_filter, cfg_tf_filter.get_value());
+
+			pfc::string filter_res;
+			bool check_pass = playback_control::get()->playback_format_title(&ra_hook, filter_res, tfo_filter, NULL, playback_control::display_level_all);
+
+			if (check_pass)
+			{
+				if (pfc::string_is_numeric(filter_res)) {
+					if (atoi(filter_res) != 0) {
+						songDesc = PFC_string_formatter() << "(filtered) " << songDesc;
+					}
+				}
+				else {
+
+					pfc::string8 tmpstr;
+					if (std::find_if(vfilters.begin(), vfilters.end(), [filter_res](const pfc::string8 s)
+						{ return s.equals(filter_res); }) != vfilters.end()) {
+						songDesc = PFC_string_formatter() << "(filtered match) " << songDesc;
+					}
+				}
+			}
 		}
 	}
-	else {
-		songDesc << "(resume playback to generate track description)";
+
+	if (!playback_ok)
+	{
+		if (!m_playback_control->playback_format_title(NULL, songDesc, p_script, NULL, playback_control::display_level_all)) {
+			songDesc << "(resume playback to generate track description)";
+			return;
+		}
 	}
 
 	const pfc::stringcvt::string_os_from_utf8 os_tag_name(songDesc);
-
 	SetDlgItemTextW(IDC_PREVIEW, os_tag_name);
 	OnComboChange(0, IDC_CMB_DATEFORMAT, NULL);
 }

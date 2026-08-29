@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "utils.h"
 #include "radio_filter_titleformat_hook.h"
 
@@ -27,18 +27,8 @@ bool radio_filter_titleformat_hook::process_function(titleformat_text_out *p_out
 			t_size name_length;
 			p_params->get_param(0, name, name_length);
 
-			//todo: rev. checkfilter() in Prefs and upgradeDummy
-			filters::radio_nfo_type rnt;
-			filters::get_radio_nfo(name, rnt);
-
-			pfc::string8 sigstr = name;
-			if (filters::check_radio_signature(radio_lensig != SIZE_MAX) && primary_ok != SIZE_MAX && primary_ok >= 2) {
-				sigstr = sigstr.subString(0, rnt.primary_sig.second);
-			}
-			//
-
-			auto it = std::find_if(m_vfilters.begin(), m_vfilters.end(), [sigstr](const pfc::string8 s) {
-				return s.equals(sigstr);});
+			auto it = std::find_if(m_vfilters.begin(), m_vfilters.end(), [name](const pfc::string8 s) {
+				return s.equals(name);});
 
 			if (it == m_vfilters.end()) {
 				p_found_flag = true;

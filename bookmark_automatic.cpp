@@ -232,23 +232,81 @@ void bookmark_automatic::updateDummy() {
 
 		pfc::string_formatter songDesc;
 		titleformat_object::ptr desc_format;
+
 		static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(desc_format, cfg_desc_format.get_value().c_str());
 
 		pfc::string8 songPath = dbHandle_item->get_path();
 
 		if (checkDummyIsRadio(songPath)) {
 
+			if (dummy.dyna && !dummy.get_fdn().get_length()) {
+
+				pfc::string8 title;
+				titleformat_object::ptr tfo_fdn;
+				static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(tfo_fdn, "%title%");
+				b_done = playback_control::get()->playback_format_title(NULL, title, tfo_fdn, NULL, playback_control::display_level_all);
+				FB2K_console_print_v("Track check-in ", title);
+
+				bool piped = filters::is_dyna_double_pipe(dummy.get_fdn());
+				bool custom = false;
+
+				pfc::string8 artist;
+				static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(tfo_fdn, "%artist%");
+				b_done = playback_control::get()->playback_format_title(NULL, artist, tfo_fdn, NULL, playback_control::display_level_all);
+
+
+				if (!artist.equals("?")) {
+					
+					if (piped) {
+						dummy.set_fdn(PFC_string_formatter() << title << " - " << artist);
+					}
+					else {
+						custom = true;
+						if (title.get_length()) {
+							dummy.set_fdn(PFC_string_formatter() << artist << "~" << title);
+						}
+						else {
+							FB2K_console_print_v("Track check-in ", dummy.get_fdn(), ", skipping artist ", artist);;
+						}
+					}
+				}
+				else {
+					dummy.set_fdn(title);
+				}
+
+				pfc::string8 album;
+				static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(tfo_fdn, "%album%");
+				b_done = playback_control::get()->playback_format_title(NULL, album, tfo_fdn, NULL, playback_control::display_level_all);
+
+				if (custom) {
+					dummy.set_fdn(PFC_string_formatter() << dummy.get_fdn() << "~" << (album.equals("?") ? "" : album));
+				}
+				else {
+					FB2K_console_print_v("Track check-in ", dummy.get_fdn(), ", skipping album ", album);;
+				}
+
+				pfc::string8 year;
+				static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(tfo_fdn, "%year%");
+				b_done = playback_control::get()->playback_format_title(NULL, year, tfo_fdn, NULL, playback_control::display_level_all);
+				if (custom) {
+					dummy.set_fdn(PFC_string_formatter() << dummy.get_fdn() << "~" << (year.equals("?") ? "" : year) << "~foo_vbookmark");
+				}
+				else {
+					FB2K_console_print_v("Track check-in ", dummy.get_fdn(), ", skipping year ", year);
+				}
+			}
+			//fb2k provides hook for new songs
 			b_done = playback_control::get()->playback_format_title(NULL, songDesc, desc_format, NULL, playback_control::display_level_all);
 
 			radio_filter_titleformat_hook ra_hook;
 			std::vector<pfc::string8>vfilters;
 
 			fltr::get_filters(cfg_txt_filter.get_value(), vfilters);
-			ra_hook.setData(vfilters);
+			ra_hook.setData(dummy.get_fdn(), vfilters);
 
 
 			fltr::radio_nfo_type rnt;
-			fltr::get_radio_nfo(songDesc, rnt);
+			fltr::get_radio_nfo(dummy.get_fdn(), rnt);
 
 			size_t pri_pos = fltr::parse_radio_info(rnt, &ra_hook, songDesc, cfg_desc_format.get_value());
 			//
@@ -376,7 +434,7 @@ bool bookmark_automatic::CheckRadioFilter(pfc::string8 song_desc, const pfc::str
 	radio_filter_titleformat_hook ra_hook;
 	std::vector<pfc::string8>vfilters;
 
-	pfc::string8 songDesc = song_desc.get_length() ? song_desc : dummy.get_name(true);
+	pfc::string8 songDesc = song_desc.get_length() ? song_desc : dummy.get_fdn();
 
 	fltr::get_filters(p_csvfilters, vfilters);
 	ra_hook.setData(vfilters);
@@ -533,7 +591,7 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 			ra_hook.setData(vfilters);
 			//
 			fltr::radio_nfo_type rnt;
-			fltr::get_radio_nfo(dummy.get_name(true), rnt);
+			fltr::get_radio_nfo(dummy.get_fdn(), rnt);
 
 			radio_signa_len = fltr::parse_radio_info(rnt, &ra_hook, dummy.desc, cfg_desc_format.get_value().c_str());
 		}
