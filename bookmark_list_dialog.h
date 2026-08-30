@@ -209,10 +209,16 @@ namespace dlg {
 
 		static void addBookmark() {
 
-			CancelUIListEdits();
+			bookmark_t bm = g_bmAuto.getDummy();
+			while (bm.need_playlist && bm.need_loc_retries < LOC_RETRIES) {
+				g_bmAuto.updateDummy();
+				bm = g_bmAuto.getDummy();
+			}
 
 			bookmark_worker bmWorker;
-			bmWorker.store(g_bmAuto.getDummy());
+			bmWorker.store(bm);
+
+			CancelUIListEdits();
 
 			for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
 				size_t item = (std::max)(0, (int)g_store.Size() - 1);
