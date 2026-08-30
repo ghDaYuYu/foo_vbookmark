@@ -794,10 +794,15 @@ void CBookmarkPreferences::RefreshTitleFormatResults() {
 
 	if (bm.isRadio()) {
 
-		pfc::string8 test_songDesc;
-		titleformat_object::ptr p_test_script;
-		static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(p_script, "%title%");
-		bool test_playback_ok = m_playback_control->playback_format_title(NULL, test_songDesc, p_script, NULL, playback_control::display_level_all);
+		bool test_playback_ok = true;
+		pfc::string8 test_songDesc = bm.get_fdn();
+
+		if (!test_songDesc.get_length()) {
+		
+			titleformat_object::ptr p_test_script;
+			static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(p_script, "%title%");
+			test_playback_ok = m_playback_control->playback_format_title(NULL, test_songDesc, p_script, NULL, playback_control::display_level_all);
+		}
 
 		filters::radio_nfo_type rnt;
 		filters::get_radio_nfo(test_songDesc, rnt);
