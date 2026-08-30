@@ -242,14 +242,20 @@ void bookmark_automatic::updateDummy() {
 			if (dummy.dyna && !dummy.get_fdn().get_length()) {
 
 				//station
-				metadb_handle_ptr mhp;
-				bool ok = playback_control::get()->get_now_playing(mhp);
-				file_info_impl fi;
-				mhp->get_info(fi);
-				pfc::string8 station = fi.meta_get("title",0);
-				station = station.toLower();
-				bool is_scoop = station.contains("scoop");
-				//
+                pfc::string8 station;
+                metadb_handle_ptr mhp;
+
+                if (playback_control::get()->get_now_playing(mhp)) {
+                    file_info_impl fi;
+                    mhp->get_info(fi);
+                    size_t pos = fi.meta_find("title");
+                    if (pos != SIZE_MAX) {
+                        station = fi.meta_get("title",0);
+                        station = station.toLower();
+                    }
+                }
+                bool is_scoop = station.contains("scoop");
+                //
 
 				pfc::string8 title;
 				titleformat_object::ptr tfo_fdn;
