@@ -241,6 +241,16 @@ void bookmark_automatic::updateDummy() {
 
 			if (dummy.dyna && !dummy.get_fdn().get_length()) {
 
+				//station
+				metadb_handle_ptr mhp;
+				bool ok = playback_control::get()->get_now_playing(mhp);
+				file_info_impl fi;
+				mhp->get_info(fi);
+				pfc::string8 station = fi.meta_get("title",0);
+				station = station.toLower();
+				bool is_scoop = station.contains("scoop");
+				//
+
 				pfc::string8 title;
 				titleformat_object::ptr tfo_fdn;
 				static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(tfo_fdn, "%title%");
@@ -254,6 +264,7 @@ void bookmark_automatic::updateDummy() {
 				static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(tfo_fdn, "%artist%");
 				b_done = playback_control::get()->playback_format_title(NULL, artist, tfo_fdn, NULL, playback_control::display_level_all);
 
+				if (is_scoop) { pfc::swap_t(artist, title); }
 
 				if (!artist.equals("?")) {
 					
@@ -289,7 +300,7 @@ void bookmark_automatic::updateDummy() {
 				static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(tfo_fdn, "%year%");
 				b_done = playback_control::get()->playback_format_title(NULL, year, tfo_fdn, NULL, playback_control::display_level_all);
 				if (custom) {
-					dummy.set_fdn(PFC_string_formatter() << dummy.get_fdn() << "~" << (year.equals("?") ? "" : year) << "~foo_vbookmark");
+					dummy.set_fdn(PFC_string_formatter() << dummy.get_fdn() << "~" << (year.equals("?") ? "" : year) << "~vbm");
 				}
 				else {
 					FB2K_console_print_v("Track check-in ", dummy.get_fdn(), ", skipping year ", year);
