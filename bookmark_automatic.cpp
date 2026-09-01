@@ -206,15 +206,43 @@ bool bookmark_automatic::fetchHelloRadioStationName(pfc::string8& out) {
 	}
 
 	if (cfg_autosave_radio_comment.get()) {
-		pfc::string_formatter sfTitle;
-		if (m_pttf_title.is_empty()) {
-			static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(m_pttf_title, "%title%");
-		}
-		if (playback_control::get()->playback_format_title(NULL, sfTitle, m_pttf_title, NULL, playback_control::display_level_titles)) {
-			if (sfTitle.get_length() > 1) {
-				out = sfTitle;
-				return true;
+
+		//station
+		pfc::string8 station;
+		metadb_handle_ptr mhp;
+
+		if (playback_control::get()->get_now_playing(mhp)) {
+
+			metadb_info_container::ptr pmic;
+			mhp->get_info_ref(pmic);
+			if (pmic.get_ptr()) {
+				size_t pos = pmic->info().meta_find("title");
+				if (pos != SIZE_MAX) {
+					station = pmic->info().meta_get("title", 0);
+				}
 			}
+		}
+
+		if (station.get_length()) {
+
+			out = filters::autoFixEncoding(station.c_str()).c_str();
+			return true;
+
+		}
+		else {
+
+			if (m_ptfo_title.is_empty()) {
+				static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(m_ptfo_title, "%title%");
+			}
+
+			pfc::string_formatter title;
+			if (playback_control::get()->playback_format_title(NULL, title, m_ptfo_title, NULL, playback_control::display_level_titles)) {
+				if (!title.equals("?")) {
+					out = title;
+					return true;
+				}
+			}
+
 		}
 	}
 	return false;
@@ -242,20 +270,23 @@ void bookmark_automatic::updateDummy() {
 			if (dummy.get_dyna() && !dummy.get_fdn().get_length()) {
 
 				//station
-                pfc::string8 station;
-                metadb_handle_ptr mhp;
+				pfc::string8 station;
+				metadb_handle_ptr mhp;
 
-                if (playback_control::get()->get_now_playing(mhp)) {
-                    file_info_impl fi;
-                    mhp->get_info(fi);
-                    size_t pos = fi.meta_find("title");
-                    if (pos != SIZE_MAX) {
-                        station = fi.meta_get("title",0);
-                        station = station.toLower();
-                    }
-                }
-                bool is_scoop = station.contains("scoop");
-                //
+				if (playback_control::get()->get_now_playing(mhp)) {
+
+					//Station
+
+					file_info_impl fi;
+					mhp->get_info(fi);
+					size_t pos = fi.meta_find("title");
+					if (pos != SIZE_MAX) {
+						station = fi.meta_get("title",0);
+						station = filters::autoFixEncoding(station.c_str()).c_str();
+					}
+				}
+
+				bool is_scoop = station.toLower().has_prefix("scoop");
 
 				pfc::string8 title;
 				titleformat_object::ptr tfo_fdn;
@@ -664,8 +695,9 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 			}
 		}
 
-		bool bshooting_down = core_api::is_shutting_down();
-		if (bshooting_down && masterList.size()) {
+		bool bshutting_down = core_api::is_shutting_down();
+		if (bshutting_down && masterList.size()) {
+			FB2K_console_print_v("Shutting down.");
 			//..
 		}
 		else {
@@ -681,6 +713,9 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 			bool bscroll_list = cfg_autosave_focus_newtrack.get();
 			refresh_ui(bscroll_list, bscroll_list, guiLists);
 		}
+	}
+	else {
+		FB2K_console_print_v("Auto-Bookmarking is paused");
 	}
 	return g_store.Size() != old_size;
 }
@@ -709,7 +744,7 @@ bool bookmark_automatic::isRestoredDummy(const bookmark_t& bm) {
 bool bookmark_automatic::isRestoredRadioDummy(const bookmark_t& bm) {
 	if (!bm.isRadio()) return false;
 	if (pfc::guid_equal(restored_dummy.guid_playlist, bm.guid_playlist) &&
-		(restored_dummy.path.equals(bm.path)) && restored_dummy.desc.equals(bm.desc)) {
+		(restored_dummy.path.equals(bm.path)) && restored_dummy.get_desc().equals(bm.get_desc())) {
 		return true;
 	}
 	return false;
