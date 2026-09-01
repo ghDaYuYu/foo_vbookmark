@@ -8,8 +8,8 @@
 #include "bookmark_automatic.h"
 #include "bookmark_list_control.h"
 #include "bookmark_preferences.h"
-#include "utils.h"
 
+#include "utils.h"
 #include "radio_filter_titleformat_hook.h"
 
 using namespace glb;
@@ -37,8 +37,6 @@ void bookmark_automatic::updateDummyTime() {
 
 		if (dummy.need_playlist && !dummy.playlist.get_length())
 		{
-			//rev: no playlist items querying location
-
 			size_t index_item;
 
 			bool bItemLoc = playlist_manager_v5::get()->get_playing_item_location(&playing_playlist_index, &index_item);
@@ -84,7 +82,7 @@ void bookmark_automatic::updateDummyTime() {
 					}
 				}
 				else {
-					FB2K_console_print_v("Track details done. ", dummy.desc);
+					FB2K_console_print_v("Track details done. ", dummy.get_desc());
 				}
 			}
 
@@ -166,7 +164,7 @@ void bookmark_automatic::updateDummyTime() {
 				FB2K_console_print_v(PFC_string_formatter() << "<update time>: " << (blapse_enabled_completed ? "delayed" : "too many retries"));
 
 				if (!dummy.need_playlist) {
-					FB2K_console_print_v("delayed, queued, too many retries, details... ", dummy.desc);
+					FB2K_console_print_v("delayed, queued, too many retries, details... ", dummy.get_desc());
 				}
 
 				if (bcan_autosave_newtrack) {
@@ -241,7 +239,7 @@ void bookmark_automatic::updateDummy() {
 
 		if (checkDummyIsRadio(songPath)) {
 
-			if (dummy.dyna && !dummy.get_fdn().get_length()) {
+			if (dummy.get_dyna() && !dummy.get_fdn().get_length()) {
 
 				//station
                 pfc::string8 station;
@@ -368,7 +366,7 @@ void bookmark_automatic::updateDummy() {
 		else {
 
 			//todo: radio station without playlist ???
-			if (dummy.isRadio(songPath) && !dummy.desc.get_length() && !dummy.dyna) {
+			if (dummy.isRadio(songPath) && !dummy.get_desc().get_length() && !dummy.get_dyna()) {
 				b_done = false;
 			}
 			else {
@@ -383,16 +381,16 @@ void bookmark_automatic::updateDummy() {
 		dummy.path = songPath;
 
 		if (!dummy.isRadio()) {
-			dummy.desc = songDesc;
+			dummy.set_desc(songDesc);
 		}
 		else {
 
-				if (!dummy.desc.get_length()) {
-					dummy.desc = songDesc;
+				if (!dummy.get_desc().get_length()) {
+					dummy.set_desc(songDesc);
 				}
 				else {
-					if (dummy.dyna) {
-						dummy.desc = songDesc;
+					if (dummy.get_dyna()) {
+						dummy.set_desc(songDesc);
 					}
 				}
 		}
@@ -407,8 +405,8 @@ void bookmark_automatic::updateDummy() {
 
 		//dyna
 		pfc::string8 station_name;
-		if (!dummy.comment.get_length() && fetchHelloRadioStationName(station_name)) {
-			dummy.comment = station_name;
+		if (!dummy.get_comment().get_length() && fetchHelloRadioStationName(station_name)) {
+			dummy.set_comment(station_name);
 		}
 
 		if (m_updating) {
@@ -456,7 +454,7 @@ bool bookmark_automatic::CheckRadioFilter(pfc::string8 song_desc, const pfc::str
 	pfc::string8 songDesc = song_desc.get_length() ? song_desc : dummy.get_fdn();
 
 	fltr::get_filters(p_csvfilters, vfilters);
-	ra_hook.setData(vfilters);
+	ra_hook.setData(dummy.get_fdn(), vfilters);
 
 	pfc::string8 flt_in_csv;
 	std::vector<pfc::string8>vfields;
@@ -477,7 +475,7 @@ bool bookmark_automatic::CheckRadioFilter(pfc::string8 song_desc, const pfc::str
 	}
 	else {
 		if (pres.second < SIZE_MAX) {
-			FB2K_console_print_v("RF allowed, bm passed. Filter: ", vfilters[pres.second], ", field: ", vfields[pres.first]);
+			FB2K_console_print_v("RF allowed, bm sec. passed. Filter: ", vfilters[pres.second], ", field: ", vfields[pres.first]);
 		}
 		else {
 			FB2K_console_print_v("RF allowed, bm passed.");
@@ -544,13 +542,13 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 
 	const std::vector<bookmark_t>& masterList = g_store.GetMasterList();
 
-	FB2K_console_print_v("Preparing to store.");
+	FB2K_console_print_v("Checking store.");
 
 	size_t old_size = masterList.size();
 
-	if (dummy.desc.length() == 0) {
+	if (dummy.get_desc().length() == 0) {
 		// nothing to do
-		FB2K_console_print_v("Skip save, no dummy description found.");
+		FB2K_console_print_v("Skip save, no dummy description.");
 		return false;
 	}
 
@@ -607,12 +605,13 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 			radio_filter_titleformat_hook ra_hook;
 			std::vector<pfc::string8>vfilters;
 			fltr::get_filters( cfg_txt_filter.get_value(), vfilters);
-			ra_hook.setData(vfilters);
+			ra_hook.setData(dummy.get_fdn(), vfilters);
 			//
 			fltr::radio_nfo_type rnt;
 			fltr::get_radio_nfo(dummy.get_fdn(), rnt);
-
-			radio_signa_len = fltr::parse_radio_info(rnt, &ra_hook, dummy.desc, cfg_desc_format.get_value().c_str());
+			pfc::string8 buff;
+			radio_signa_len = fltr::parse_radio_info(rnt, &ra_hook, buff, cfg_desc_format.get_value().c_str());
+			dummy.set_desc(buff);
 		}
 
 		size_t dup_ndx = SIZE_MAX;
@@ -625,16 +624,16 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 			bool brev_time = abs(rit->get_time() - dummy.get_time()) <= 2 * KMin_Lapse;
 			bool brev_path_guid_subsong = rit->path.equals(dummy.path) && pfc::guid_equal(rit->guid_playlist, dummy.guid_playlist);
 			brev_path_guid_subsong = brev_path_guid_subsong && rit->subsong == dummy.subsong;
-			bool brev_desc_or_radio = !dummy.isRadio() || (rit->desc.equals(dummy.desc));
+			bool brev_desc_or_radio = !dummy.isRadio() || (rit->get_desc().equals(dummy.get_desc()));
 
 			bool bradio_same_desc_any_time = dummy.isRadio() && brev_path_guid_subsong;
 
 			//sig
-			if (radio_signa_len != SIZE_MAX && rit->desc.get_length() >= radio_signa_len) {
-				bradio_same_desc_any_time &= rit->desc.subString(0, radio_signa_len).equals(dummy.desc.subString(0, radio_signa_len));
+			if (radio_signa_len != SIZE_MAX && rit->get_desc().get_length() >= radio_signa_len) {
+				bradio_same_desc_any_time &= rit->get_desc().subString(0, radio_signa_len).equals(dummy.get_desc().subString(0, radio_signa_len));
 			}
 			else {
-				bradio_same_desc_any_time &= dummy.isRadio() && brev_path_guid_subsong && rit->desc.equals(dummy.desc);
+				bradio_same_desc_any_time &= dummy.isRadio() && brev_path_guid_subsong && rit->get_desc().equals(dummy.get_desc());
 			}
 			//
 

@@ -62,13 +62,12 @@ namespace dlg {
 			return std::to_string(item + 1).c_str();
 		case colID::TIME_COL:
 			return make_time_col(rec, cfg_display_ms.get());
-
 		case colID::DESC_COL:
 			return rec.get_name(true); //rec.desc.c_str();
 		case colID::PLAYLIST_COL:
 			return rec.playlist.c_str();
 		case colID::ELU_COL:
-			return rec.comment.c_str();
+			return rec.get_comment().c_str();
 		case colID::DATE_COL:
 			return rec.runtime_date.c_str();
 		default:
@@ -304,7 +303,7 @@ namespace dlg {
 				return false;
 			}
 
-			rec.desc = songDesc;
+			rec.set_desc(songDesc);
 			bres = true;
 		}
 
@@ -324,7 +323,7 @@ namespace dlg {
 
 			pfc::string8 buffer(val);
 			bookmark_t rec = g_store.GetItem(item);
-			if (!stricmp_utf8(buffer, rec.desc)) {
+			if (!stricmp_utf8(buffer, rec.get_desc())) {
 				rec.set_name("");
 			}
 			else if (!buffer.get_length()) {
@@ -361,7 +360,7 @@ namespace dlg {
 			//replace comment
 			bookmark_t rec = g_store.GetItem(item);
 
-			rec.comment = pfc::string8(val);
+			rec.set_comment(pfc::string8(val));
 			g_store.SetItem(item, rec);  //includes write data file
 
 			g_store.Write();
@@ -455,24 +454,23 @@ namespace dlg {
 		return stricmp_utf8(p2, p1);
 	}
 
-	const pfc::string8& get_rec_col_content(const bookmark_t& rec, size_t col_content_index) {
+	const void get_rec_col_content(const bookmark_t& rec, size_t col_content_index, pfc::string8& out) {
 
 		if (col_content_index == colcast(colID::DESC_COL)) {
-			return rec.desc;
+			out = rec.get_desc();
 		}
 		else if (col_content_index == colcast(colID::PLAYLIST_COL)) {
-			return rec.playlist;
+			out = rec.playlist;
 		}
 		else if (col_content_index == colcast(colID::ELU_COL)) {
-			return rec.comment;
+			out = rec.get_comment();
 		}
 		else if (col_content_index == colcast(colID::DATE_COL)) {
-			return rec.runtime_date;
+			out = rec.runtime_date;
 		}
 		else {
 			PFC_ASSERT(false);
 		}
-		return rec.desc;
 	}
 
 	void get_sort_expr(const bookmark_t& bm, size_t colcontent, pfc::string8 & out) {
@@ -481,7 +479,7 @@ namespace dlg {
 			out = make_time_col(bm, true);
 		}
 		else {
-			out = get_rec_col_content(bm, colcontent);
+			get_rec_col_content(bm, colcontent, out);
 		}
 		if (colcontent != colcast(colID::DATE_COL)) {
 			out << bm.runtime_date;
@@ -490,7 +488,7 @@ namespace dlg {
 			out << std::to_string(bm.get_time()).c_str();
 		}
 		if (colcontent != colcast(colID::DESC_COL)) {
-			out << bm.desc;
+			out << bm.get_desc();
 		}
 		if (colcontent != colcast(colID::PLAYLIST_COL)) {
 			out << bm.playlist;

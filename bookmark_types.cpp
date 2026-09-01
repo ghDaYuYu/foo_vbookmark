@@ -4,7 +4,6 @@
 #include "bookmark_persistence.h"
 #include "bookmark_types.h"
 
-
 int get_wday_index(std::string name)
 {
 	std::map<std::string, int> wdays
@@ -74,4 +73,24 @@ inline void unix_str_date_to_time(pfc::string8 unix_date, time_t& out_rawtime, t
 	out_tm.tm_isdst = -1;
 
 	out_rawtime = mktime(&out_tm);
+}
+
+void bookmark_t::set_name(pfc::string8 p_name) {
+	name = p_name;
+}
+
+void bookmark_t::set_desc(pfc::string8 p_desc) {
+	desc = p_desc;
+}
+
+void bookmark_t::set_comment(pfc::string8 p_comment) {
+	comment = p_comment;
+}
+
+void bookmark_t::assign_desc(pfc::string8 p_desc) {
+	name = "";
+	desc = p_desc;
+}
+void bookmark_t::set_fdn(pfc::string8 p_fdn) {
+	fdn = p_fdn;
 }

@@ -27,7 +27,7 @@ public:
 	}
 
 	bool checkDummy() {
-		return (bool)dummy.desc.get_length();
+		return (bool)dummy.get_desc().get_length();
 	}
 
 	const bookmark_t getDummy() {
@@ -35,10 +35,14 @@ public:
 	}
 
 	bool getDyna() {
-		return dummy.isRadio() && dummy.dyna;
+		return dummy.isRadio() && dummy.get_dyna();
 	}
 	void setDyna(bool state) {
-		dummy.dyna = dummy.isRadio() && state;
+		dummy.set_dyna(dummy.isRadio() && state);
+	}
+
+	void setDynaInfo(const file_info& p_info) {
+		dummy.fii = p_info;
 	}
 
 	bool checkDummyIsRadio() {
@@ -69,18 +73,13 @@ public:
 	void checkDeletedRestoredDummy(const bit_array& mask, size_t count);
 
 	void resetDummyKeepDyna() {
-		auto tmp = dummy;
-		resetDummyAll();
-		dummy.dyna = tmp.dyna;
-		dummy.desc = tmp.desc;
-		dummy.comment = tmp.comment;
+		dummy.resetDummyKeepDyna();
 	}
 
 	void resetDummyAll() {
 		m_updatePlaylistLapseStart = DBL_MAX;
 		dummy.reset();
 	}
-
 	void setDummyTime(double time) { dummy.set_time(time); }
 
 	bool isRestoredDummy(const bookmark_t& bm);
@@ -89,7 +88,7 @@ public:
 	void delete_item_ui(size_t index, std::list< dlg::CListControlBookmark*> guiLists);
 	void refresh_ui(bool bselect, bool bensure_visible, std::list< dlg::CListControlBookmark*> guiLists);
 
-	void Reset_Update_For_Seek_And_Radio() {
+	void Reset_Updating() {
 		m_updating = true;
 		m_updatePlaylistLapseStart = DBL_MAX;
 	}
@@ -107,8 +106,8 @@ public:
 	void cancelUpdating() {
 		m_updatePlaylistLapseStart = DBL_MAX;
 		m_updating = dummy.need_playlist = false;
-		return;
 	}
+
 private:
 
 	bookmark_t dummy;
@@ -119,7 +118,7 @@ private:
 
 	double m_updatePlaylistLapse = 0.0;
 	double m_updatePlaylistLapseStart = DBL_MAX;
-	titleformat_object::ptr m_pttf_title = nullptr;
+	titleformat_object::ptr m_ptfo_title = nullptr;
 
 	std::mutex lock_update_time;
 };

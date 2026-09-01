@@ -470,7 +470,7 @@ namespace dlg {
 						bresetable_time_ms = static_cast<size_t>(rec.get_time()) != rec.get_time();
 
 						bresetable_playlist = rec.playlist.get_length();
-						bresetable_comment = rec.comment.get_length();
+						bresetable_comment = rec.get_comment().get_length();
 
 					}
 
@@ -697,7 +697,7 @@ namespace dlg {
 								changed |= true;
 							}
 							else if (cmd == ID_RESET_COMMENT) {
-								rec.comment = "";
+								rec.set_comment("");
 								g_store.SetItem(w, rec);
 								changed |= true;
 							}
@@ -724,7 +724,7 @@ namespace dlg {
 						pfc::string8 fall_clip_text;
 						if (cmd == ID_COPY_BOOKMARK) {
 							auto rec = g_store.GetItem(isel);
-							fall_clip_text = rec.desc;
+							fall_clip_text = rec.get_desc();
 						}
 						else if (cmd == ID_COPY_PATH) {
 							auto rec = g_store.GetItem(isel);

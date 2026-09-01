@@ -40,7 +40,7 @@ void bookmark_worker::store(const bookmark_t bookmark) {
 			songDesc << "Could not find playing song info.";
 
 			newMark.set_time(playback_control_ptr->playback_get_position());
-			newMark.desc = songDesc.c_str();
+			newMark.set_desc(songDesc.c_str());
 			newMark.playlist = "";
 			newMark.guid_playlist = pfc::guid_null;
 			newMark.path = "";
@@ -69,7 +69,7 @@ void bookmark_worker::store(const bookmark_t bookmark) {
 			pfc::string8 songPath = dbHandle_item->get_path();
 
 			newMark.set_time(playback_control_ptr->playback_get_position());
-			newMark.desc = songDesc;
+			newMark.set_desc(songDesc);
 			newMark.playlist = playing_pl_name.c_str();	//without using c_str(), the full 80 characters are written every time
 			newMark.guid_playlist = guid_playlist;
 			newMark.path = songPath;
@@ -83,7 +83,7 @@ void bookmark_worker::store(const bookmark_t bookmark) {
 
 				pfc::string_formatter songDesc;
 				if (playback_control::get()->playback_format_title(NULL, songDesc, p_script, NULL, playback_control::display_level_all)) {
-					newMark.desc = songDesc.c_str();
+					newMark.set_desc(songDesc.c_str());
 				}
 			}
 		}
@@ -137,7 +137,7 @@ void bookmark_worker::restore(size_t index) {
 		bool bplaylist_item_fault = true;
 
 		if (pfc::guid_equal(rec.guid_playlist, pfc::guid_null)) {
-			FB2K_console_print_v("Item queued... ", rec.desc);
+			FB2K_console_print_v("Item queued... ", rec.get_desc());
 		}
 		else {
 			index_pl = playlist_manager_v5::get()->find_playlist_by_guid(rec.guid_playlist);
