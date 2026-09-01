@@ -210,9 +210,10 @@ namespace dlg {
 		static void addBookmark() {
 
 			bookmark_t bm = g_bmAuto.getDummy();
-			while (bm.need_playlist && bm.need_loc_retries < LOC_RETRIES) {
-				g_bmAuto.updateDummy();
-				bm = g_bmAuto.getDummy();
+
+			if (!bm.playlist.get_length()) {
+				g_bmAuto.User_Reset_Updating();
+				return;
 			}
 
 			bookmark_worker bmWorker;

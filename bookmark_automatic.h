@@ -94,6 +94,12 @@ public:
 		m_updatePlaylistLapseStart = DBL_MAX;
 	}
 
+	void User_Reset_Updating() {
+		dummy.need_playlist = true;
+		m_user_reset_after_current = true;
+		m_updatePlaylistLapseStart = DBL_MAX;
+	}
+
 	const bool isUpdating() {
 		return m_updating;
 	}
@@ -109,6 +115,7 @@ private:
 	bookmark_t restored_dummy;
 
 	bool m_updating = true;
+	bool m_user_reset_after_current = false;
 
 	double m_updatePlaylistLapse = 0.0;
 	double m_updatePlaylistLapseStart = DBL_MAX;

@@ -28,7 +28,7 @@ void bookmark_automatic::updateDummyTime() {
 		m_updatePlaylistLapse = dummy.get_time() - m_updatePlaylistLapseStart;
 	}
 
-	if (m_updating) {
+	if (m_updating || m_user_reset_after_current) {
 
 		bool b_data_srv_available = false;
 
@@ -88,7 +88,7 @@ void bookmark_automatic::updateDummyTime() {
 				}
 			}
 
-			if (is_cfg_LapseEnabled()) {
+			if (!m_user_reset_after_current && is_cfg_LapseEnabled()) {
 
 				if(m_updatePlaylistLapse < get_cfg_lapse()) {
 
@@ -122,6 +122,8 @@ void bookmark_automatic::updateDummyTime() {
 					}
 				}
 			}
+
+			m_user_reset_after_current = false;
 
 			if (bcan_autosave_newtrack) {
 
