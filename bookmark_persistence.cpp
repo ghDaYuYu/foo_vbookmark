@@ -92,15 +92,24 @@ bool bookmark_persistence::writeDataFileJSON(const std::vector<bookmark_t>& mast
 	}
 	if (!masterList.size()) {
 		std::error_code ec;
-		std::filesystem::path os_file_name = genFilePath();
-		if (std::filesystem::exists(os_file_name)) {
-			std::filesystem::remove(os_file_name, ec);
+		std::filesystem::path os_file = genFilePath();
+		if (std::filesystem::exists(os_file)) {
+			std::filesystem::remove(os_file, ec);
 		}
 		return ec.value() == 0;
 	}
 
+	std::filesystem::path os_file = genFilePath();
+
+	std::error_code ec;
+	std::filesystem::path os_file_tmp = (PFC_string_formatter() << os_file.c_str() << "_tmp").c_str();
+
+	if (std::filesystem::exists(os_file)) {
+		std::filesystem::copy_file(os_file, os_file_tmp,std::filesystem::copy_options::overwrite_existing, ec);
+	}
 
 	int jf = -1;
+	int resdump = 0;
 
 	try {
 
@@ -126,15 +135,14 @@ bool bookmark_persistence::writeDataFileJSON(const std::vector<bookmark_t>& mast
 			auto res = json_array_append(arr_top, wobj);
 		}
 
-		setlocale(LC_ALL, ".UTF8");
-		std::filesystem::path os_file = genFilePath();
 		jf = _wopen(os_file.wstring().c_str(), _O_CREAT | _O_TRUNC | _O_WRONLY| _O_TEXT/*_O_U8TEXT*/, _S_IWRITE);
 
 		if (jf == -1) {
 			foobar2000_io::exception_io e("Open failed on output file");
 			throw e;
 		}
-		auto resdump = json_dumpfd(arr_top, jf, JSON_INDENT(5));
+
+		resdump = json_dumpfd(arr_top, jf, JSON_INDENT(5));
 		_close(jf);
 
 		bres = true;
@@ -143,13 +151,36 @@ bool bookmark_persistence::writeDataFileJSON(const std::vector<bookmark_t>& mast
 			free(w);
 		}
 
+		if (resdump == -1) {
+			bres = false;
+			exception_io e;
+			throw e;
+		}
+
 		FB2K_console_print_v("Wrote ", std::to_string(n_entries).c_str(), " bookmarks to file");
+
+		if (std::filesystem::exists(os_file_tmp)) {
+			std::filesystem::remove(os_file_tmp);
+		}
+
 	}
 	catch (foobar2000_io::exception_io e) {
 		if (jf != -1) {
 			_close(jf);
 		}
-		FB2K_console_print_e("Could not write bookmarks to file", e);
+		if (resdump == -1) {
+			FB2K_console_print_e("JSON Exception: could not write bookmarks to file", e);
+		}
+		else {
+			FB2K_console_print_e("Could not write bookmarks to file", e);
+		}
+
+		if (std::filesystem::exists(os_file_tmp)) {
+			if (std::filesystem::exists(os_file)) {
+				std::filesystem::remove(os_file);
+			}
+			std::filesystem::rename(os_file_tmp, os_file);
+		}
 	}
 	catch (...) {
 		if (jf != -1) {

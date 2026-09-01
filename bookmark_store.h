@@ -77,6 +77,10 @@ public:
 			return;
 		}
 
+		//not thread safe
+		setlocale(LC_ALL, ".UTF8");
+		//
+
 		if (thread_pool) {
 
 			if (!is_cfg_Instant_Write()) {
