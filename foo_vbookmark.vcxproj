@@ -154,7 +154,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
-      <AdditionalIncludeDirectories>.;..;../..;$(WTL_PATH);jansson;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;..;../..;$(WTL_PATH);jansson;pugixml;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Precise</FloatingPointModel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ForcedIncludeFiles>StdAfx.h</ForcedIncludeFiles>
@@ -277,7 +277,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <StringPooling>true</StringPooling>
       <OmitFramePointers>true</OmitFramePointers>
-      <AdditionalIncludeDirectories>.;..;../..;$(WTL_PATH);jansson</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;..;../..;$(WTL_PATH);jansson;pugixml;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ForcedIncludeFiles>StdAfx.h</ForcedIncludeFiles>
@@ -312,7 +312,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <StringPooling>true</StringPooling>
       <OmitFramePointers>true</OmitFramePointers>
-      <AdditionalIncludeDirectories>.;..;../..;$(WTL_PATH);jansson</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;..;../..;$(WTL_PATH);jansson;pugixml;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ForcedIncludeFiles>StdAfx.h</ForcedIncludeFiles>
@@ -416,6 +416,7 @@
     <ClCompile Include="IBookmark.cpp" />
     <ClCompile Include="init_quit.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="radio_filter_titleformat_hook.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -428,9 +429,9 @@
     </ClCompile>
     <ClCompile Include="bookmark_persistence.cpp" />
     <ClCompile Include="bookmark_preferences.cpp" />
+    <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\foo_vbookmarkfun\resource.h" />
     <ClInclude Include="bookmark_automatic.h" />
     <ClInclude Include="bookmark_core.h" />
     <ClInclude Include="bookmark_list_dialog.h" />
@@ -445,12 +446,14 @@
     <ClInclude Include="context_menu.h" />
     <ClInclude Include="guids.h" />
     <ClInclude Include="IBookmark.h" />
+    <ClInclude Include="radio_filter_titleformat_hook.h" />
     <ClInclude Include="style_manager_cui.h" />
     <ClInclude Include="style_manager_dui.h" />
     <ClInclude Include="header_static.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="style_manager.h" />
+    <ClInclude Include="utils.h" />
     <ClInclude Include="version.h" />
   </ItemGroup>
   <ItemGroup>
@@ -476,6 +479,9 @@
     </ProjectReference>
     <ProjectReference Include="..\foo_vbookmark libs\jansson-2.14\build\jansson.vcxproj">
       <Project>{a0033952-f97c-3594-a9a1-4abaf51af144}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\foo_vbookmark libs\pugixml-master\scripts\pugixml_vs2022.vcxproj">
+      <Project>{07cf01c0-b887-499d-ad9c-799cb6a9fe64}</Project>
     </ProjectReference>
     <ProjectReference Include="..\helpers\foobar2000_sdk_helpers.vcxproj">
       <Project>{ee47764e-a202-4f85-a767-abdab4aff35f}</Project>

@@ -2,6 +2,7 @@
 #include <regex>
 #include <algorithm>
 
+#include "pugixml.hpp"
 
 #include "utils.h"
 
@@ -271,8 +272,29 @@ namespace filters {
 	//
 
 	void get_radio_nfo(const pfc::string8 desc, radio_nfo_type& rnt) {
+
+		pfc::string8 xml_desc;
 		std::vector<pfc::string8> vfields;
-		std::pair<size_t, size_t> primary_sig = get_radio_info_sigfields(desc, rnt.vfields);
+
+		if (desc.startsWith("<?xml")) {
+	
+			pugi::xml_document doc;
+			pugi::xml_parse_result result = doc.load_string(desc);
+	
+			if (result) {
+
+				pfc::string8 title = doc.child("RadioInfo").child("Table").child("DB_DALET_TITLE_NAME").child_value();
+				pfc::string8 artist = doc.child("RadioInfo").child("Table").child("DB_DALET_ARTIST_NAME").child_value();
+				pfc::string8 album = doc.child("RadioInfo").child("Table").child("DB_ALBUM_NAME").child_value();
+
+				if (title.get_length()) {
+					xml_desc = PFC_string_formatter() << title << "~" << artist << "~" << album << "~~" << "vbm";
+					xml_desc = filters::autoFixEncoding(xml_desc.c_str()).c_str();
+				}
+			}
+		}
+
+		std::pair<size_t, size_t> primary_sig = get_radio_info_sigfields(xml_desc.get_length() ? xml_desc : desc, rnt.vfields);
 		rnt.radio_info = desc;
 		rnt.primary_sig = primary_sig;
 	}
