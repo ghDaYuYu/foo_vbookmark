@@ -27,6 +27,7 @@ void bookmark_worker::store(const bookmark_t bookmark) {
 	if (cfg_monitor.get()) {
 		newMark = bookmark;
 		newMark.set_time(playback_control::get()->playback_get_position());
+		gimme_date(newMark);
 	}
 	else {
 		pfc::string_formatter songDesc;
