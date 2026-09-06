@@ -188,6 +188,14 @@ void bookmark_automatic::updateDummyTime() {
 					//
 				}
 			}
+			else {
+
+                // retry orphans
+
+                return;
+
+                //
+            }
 		}
 
 		//req. for no delays, paused bm, auto-create on_exit...
