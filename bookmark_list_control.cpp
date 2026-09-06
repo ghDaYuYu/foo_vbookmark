@@ -181,6 +181,17 @@ namespace dlg {
 		bool F2_KeyState = GetAsyncKeyState(VK_F2) & 0x01;
 		bool edit_mode = F2_KeyState || cfg_edit_mode.get();
 
+		WPARAM cur_clicked_item = MAKEWPARAM(item, subItem);
+		bool same_item_clicked = is_cfg_1clk_Edit() && m_last_clicked_item == cur_clicked_item;
+	
+		if (same_item_clicked) {
+			m_last_clicked_item = MAKEWPARAM(SIZE_MAX, SIZE_MAX);
+			edit_mode |= same_item_clicked;
+		}
+		else {
+			m_last_clicked_item = cur_clicked_item;
+		}
+
 		if (edit_mode) {
 			if (listIsColumnEditable(ctx, subItem)) {
 				CListControlBookmark* plc = (CListControlBookmark*)(ctx);

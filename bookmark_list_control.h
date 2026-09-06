@@ -34,6 +34,8 @@ namespace dlg {
 
 	class ILOD_BookmarkSource : public IListControlOwnerDataSource {
 
+		WPARAM m_last_clicked_item = MAKEWPARAM(SIZE_MAX, SIZE_MAX);
+
 	public:
 
 		//overrides...

@@ -1,4 +1,5 @@
 #include "bookmark_core.h"
+#include "bookmark_worker.h"
 #include "bookmark_list_control.h"
 
 using namespace glb;

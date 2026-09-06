@@ -50,7 +50,7 @@ static const GUID guid_cfg_queue_flag = { 0xe0b79d39, 0x269c, 0x49ed, { 0x88, 0x
 static const GUID guid_cfg_status_flag = { 0x3b8608ce, 0xf964, 0x463d, { 0x90, 0x11, 0x41, 0x99, 0x9d, 0x4e, 0xd, 0xd9 } };
 
 // {82C85AE9-51D4-45F4-8DBA-CE004EC45AAB}
-static const GUID guid_cfg_enter_advance = { 0x82c85ae9, 0x51d4, 0x45f4, { 0x8d, 0xba, 0xce, 0x0, 0x4e, 0xc4, 0x5a, 0xab } };
+static const GUID guid_cfg_edit_mode = { 0x82c85ae9, 0x51d4, 0x45f4, { 0x8d, 0xba, 0xce, 0x0, 0x4e, 0xc4, 0x5a, 0xab } };
 
 // {452AC946-F849-4C79-9868-01C60F0421E6}
 static const GUID guid_cfg_misc_flag = { 0x452ac946, 0xf849, 0x4c79, { 0x98, 0x68, 0x1, 0xc6, 0xf, 0x4, 0x21, 0xe6 } };
@@ -69,7 +69,7 @@ static const GUID guid_cfg_tf_filter = { 0xb1092fa6, 0x3fa0, 0x4300, { 0xa5, 0x5
 
 // defaults
 
-static const pfc::string8 default_cfg_bookmark_desc_format = "%title% - $if2(%album% - ,- )%artist%";
+static const pfc::string8 default_cfg_bookmark_desc_format = "%title% - $if2(%album% - ,)%artist%";
 static const pfc::string8 default_cfg_date_format = "%y-%m-%d %H:%M";
 static const bool default_cfg_display_ms = false;
 static const pfc::string8 default_cfg_autosave_newtrack_playlists = "Podcatcher";
@@ -122,7 +122,7 @@ cfg_string cfg_lapse(guid_cfg_lapse, default_cfg_lapse);
 cfg_int cfg_queue_flag(guid_cfg_queue_flag, default_cfg_queue_flag);
 cfg_int cfg_status_flag(guid_cfg_status_flag, default_cfg_status_flag);
 
-cfg_bool cfg_edit_mode(guid_cfg_enter_advance, default_cfg_edit_mode);
+cfg_bool cfg_edit_mode(guid_cfg_edit_mode, default_cfg_edit_mode);
 
 cfg_int cfg_misc_flag(guid_cfg_misc_flag, default_cfg_misc_flag);
 
@@ -159,12 +159,11 @@ const CDialogResizeHelper::Param resize_params[] = {
 	{IDC_EDIT_AUTO_TF_FILTER, 0,0,1,0},
 	{IDC_AUTOSAVE_TRACK_FILTER, 0,0,1,0},
 	{IDC_PREVIEW, 0,0,1,0},
-	{IDC_QUEUE_FLAG, 0,0,1,0},
-	{IDC_EDIT_MODE, 0,0,1,0},
 	{IDC_STATUS_FLAG, 1,0,1,0},
 	{IDC_BUTTON_HEADER_CB, 1,0,1,0},
 	{IDC_AUTOSAVE_RADIO_TRACK, 1,0,1,0},
 	{IDC_AUTOSAVE_RADIO_COMMENT_ST, 1,0,1,0},
+	{IDC_RQ_ON_INIT_FLAG, 1,0,1,0},
 	{IDC_LAPSE_FLAG, 1,0,1,0},
 	{IDC_LAPSE, 1,0,1,0},
 	{IDC_DISPLAY_MS, 1,0,1,0},
@@ -438,11 +437,15 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow, LPARAM) {
 	cfgToUi(bai_queue_flag, QUEUE_RESTORE_TO_FLAG, /*IDC_QUEUE_FLAG*/bai_queue_flag.idc);
 	cfgToUi(bai_queue_flag, QUEUE_FLUSH_FLAG, IDC_QUEUE_FLUSH_FLAG);
 
+	cfgToUi(bai_queue_flag, PLAY_ON_INIT_FLAG, IDC_PLAY_ON_INIT_FLAG);
+	cfgToUi(bai_queue_flag, RQ_ON_INIT_FLAG, IDC_RQ_ON_INIT_FLAG);
+
 	cfgToUi(bai_status_flag);
 
 	cfgToUi(bab_edit_mode);
 
 	cfgToUi(bai_misc_flag, MISC_FLAG_EDIT_ENTER_KEY_ADV, bai_misc_flag.idc);
+	cfgToUi(bai_misc_flag, MISC_FLAG_EDIT_1CLK_EDIT, IDC_1CLK_EDIT_MODE);
 	cfgToUi(bai_misc_flag, MISC_FLAG_INSTANT_WRITE_ON_EDITS, IDC_MISC_FLAG_WRITE_ON_EDITS);
 	cfgToUi(bai_misc_flag, MISC_DUP_ENABLED_FLAG, IDC_MISC_FLAG_DUP_ENABLED);
 	cfgToUi(bai_misc_flag, MISC_DUP_REMOVE_PREV_FLAG, IDC_MISC_FLAG_DUP_REMOVE_PREV);
@@ -637,11 +640,15 @@ void CBookmarkPreferences::reset() {
 	defToUi(bai_queue_flag, QUEUE_RESTORE_TO_FLAG, /*IDC_QUEUE_FLAG*/bai_queue_flag.idc);
 	defToUi(bai_queue_flag, QUEUE_FLUSH_FLAG, IDC_QUEUE_FLUSH_FLAG);
 
+	defToUi(bai_queue_flag, PLAY_ON_INIT_FLAG, IDC_PLAY_ON_INIT_FLAG);
+	defToUi(bai_queue_flag, RQ_ON_INIT_FLAG, IDC_RQ_ON_INIT_FLAG);
+
 	defToUi(bai_status_flag);
 
 	defToUi(bab_edit_mode);
 
 	defToUi(bai_misc_flag, MISC_FLAG_EDIT_ENTER_KEY_ADV, /*IDC_MISC_FLAG_ENTER_KEY_DOWN*/bai_misc_flag.idc);
+	defToUi(bai_misc_flag, MISC_FLAG_EDIT_1CLK_EDIT, IDC_1CLK_EDIT_MODE);
 	defToUi(bai_misc_flag, MISC_FLAG_INSTANT_WRITE_ON_EDITS, IDC_MISC_FLAG_WRITE_ON_EDITS);
 	defToUi(bai_misc_flag, MISC_DUP_ENABLED_FLAG, IDC_MISC_FLAG_DUP_ENABLED);
 	defToUi(bai_misc_flag, MISC_DUP_REMOVE_PREV_FLAG, IDC_MISC_FLAG_DUP_REMOVE_PREV);
@@ -693,6 +700,8 @@ void CBookmarkPreferences::apply() {
 	int ui_fval = 0;
 	ui_fval = IsDlgButtonChecked(/*IDC_QUEUE_FLAG*/bai_queue_flag.idc) ? QUEUE_RESTORE_TO_FLAG : ui_fval;
 	ui_fval = IsDlgButtonChecked(IDC_QUEUE_FLUSH_FLAG) ? ui_fval | QUEUE_FLUSH_FLAG : ui_fval;
+	ui_fval = IsDlgButtonChecked(IDC_PLAY_ON_INIT_FLAG) ? ui_fval | PLAY_ON_INIT_FLAG : ui_fval;
+	ui_fval = IsDlgButtonChecked(IDC_RQ_ON_INIT_FLAG) ? ui_fval | RQ_ON_INIT_FLAG : ui_fval;
 	uiToCfg(bai_queue_flag, ui_fval);
 
 	uiToCfg(bai_status_flag);
@@ -700,6 +709,7 @@ void CBookmarkPreferences::apply() {
 
 	ui_fval = 0;
 	ui_fval = IsDlgButtonChecked(/*IDC_MISC_FLAG_ENTER_KEY_DOWN*/bai_misc_flag.idc) ? MISC_FLAG_EDIT_ENTER_KEY_ADV : ui_fval;
+	ui_fval = IsDlgButtonChecked(IDC_1CLK_EDIT_MODE) ?  ui_fval | MISC_FLAG_EDIT_1CLK_EDIT : ui_fval;
 	ui_fval = IsDlgButtonChecked(IDC_MISC_FLAG_WRITE_ON_EDITS) ? ui_fval | MISC_FLAG_INSTANT_WRITE_ON_EDITS : ui_fval;
 	ui_fval = IsDlgButtonChecked(IDC_MISC_FLAG_DUP_ENABLED) ? ui_fval | MISC_DUP_ENABLED_FLAG : ui_fval;
 	ui_fval = IsDlgButtonChecked(IDC_MISC_FLAG_DUP_REMOVE_PREV) ? ui_fval | MISC_DUP_REMOVE_PREV_FLAG : ui_fval;
@@ -747,6 +757,8 @@ bool CBookmarkPreferences::HasChanged() {
 	int ui_fval = 0;
 	ui_fval = IsDlgButtonChecked(/*IDC_QUEUE_FLAG*/bai_queue_flag.idc) ? QUEUE_RESTORE_TO_FLAG : ui_fval;
 	ui_fval = IsDlgButtonChecked(IDC_QUEUE_FLUSH_FLAG) ? ui_fval | QUEUE_FLUSH_FLAG : ui_fval;
+	ui_fval = IsDlgButtonChecked(IDC_PLAY_ON_INIT_FLAG) ? ui_fval | PLAY_ON_INIT_FLAG : ui_fval;
+	ui_fval = IsDlgButtonChecked(IDC_RQ_ON_INIT_FLAG) ? ui_fval | RQ_ON_INIT_FLAG : ui_fval;
 
 	result |= isUiChanged(bai_queue_flag, ui_fval);
 
@@ -756,6 +768,7 @@ bool CBookmarkPreferences::HasChanged() {
 
 	ui_fval = 0;
 	ui_fval = IsDlgButtonChecked(/*IDC_MISC_FLAG_ENTER_KEY_DOWN*/bai_misc_flag.idc) ? MISC_FLAG_EDIT_ENTER_KEY_ADV : ui_fval;
+	ui_fval = IsDlgButtonChecked(IDC_1CLK_EDIT_MODE) ? ui_fval | MISC_FLAG_EDIT_1CLK_EDIT : ui_fval;
 	ui_fval = IsDlgButtonChecked(IDC_MISC_FLAG_WRITE_ON_EDITS) ? ui_fval | MISC_FLAG_INSTANT_WRITE_ON_EDITS : ui_fval;
 	ui_fval = IsDlgButtonChecked(IDC_MISC_FLAG_DUP_ENABLED) ? ui_fval | MISC_DUP_ENABLED_FLAG : ui_fval;
 	ui_fval = IsDlgButtonChecked(IDC_MISC_FLAG_DUP_REMOVE_PREV) ? ui_fval | MISC_DUP_REMOVE_PREV_FLAG : ui_fval;
