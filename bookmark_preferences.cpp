@@ -63,9 +63,13 @@ static const GUID guid_cfg_header_click_block_flag = { 0xec97bd7c, 0x83b2, 0x4e1
 
 // {4DD65DEA-EDD2-47B1-A4C8-4ABAF43D64FB}
 static const GUID guid_cfg_txt_filter = { 0x4dd65dea, 0xedd2, 0x47b1, { 0xa4, 0xc8, 0x4a, 0xba, 0xf4, 0x3d, 0x64, 0xfb } };
-// {4DD65DEA-EDD2-47B1-A4C8-4ABAF43D64FB}
-static const GUID guid_cfg_tf_filter = { 0xb1092fa6, 0x3fa0, 0x4300, { 0xa5, 0x58, 0x3c, 0x10, 0xb6, 0x2e, 0x43, 0xfe } };
+
 // {B1092FA6-3FA0-4300-A558-3C10B62E43FE}
+static const GUID guid_cfg_tf_filter = { 0xb1092fa6, 0x3fa0, 0x4300, { 0xa5, 0x58, 0x3c, 0x10, 0xb6, 0x2e, 0x43, 0xfe } };
+
+// {E5864BB5-774E-4466-8C4D-E1CA9A6AC43D}
+static const GUID guid_cfg_rq_wait =
+{ 0xe5864bb5, 0x774e, 0x4466, { 0x8c, 0x4d, 0xe1, 0xca, 0x9a, 0x6a, 0xc4, 0x3d } };
 
 // defaults
 
@@ -96,6 +100,8 @@ static const int default_cfg_misc_flag = 0;
 static const int default_cfg_lapse_flag = LAPSE_FLAG_ENABLED;
 
 static const pfc::string8 default_cfg_header_click_block_flag = "0";
+
+static const pfc::string8 default_cfg_rq_wait = "20";
 
 static const pfc::string8 default_cfg_txt_filter = "Radio Classic Rock,RockClassics,Breaking News";
 static const pfc::string8 default_cfg_tf_filter = "$if($or($strstr(%title%,ANEWSFM),$cont_radio_filters(%title% %artist%),$in_radio_filters(%title%)),1,0)";
@@ -132,6 +138,8 @@ cfg_string cfg_header_click_block_flag(guid_cfg_header_click_block_flag, default
 
 cfg_string cfg_txt_filter(guid_cfg_txt_filter, default_cfg_txt_filter.c_str());
 cfg_string cfg_tf_filter(guid_cfg_tf_filter, default_cfg_tf_filter.c_str());
+
+cfg_string cfg_rq_wait(guid_cfg_rq_wait, default_cfg_rq_wait);
 
 struct boxAndBool_t {
 	int idc;
@@ -176,6 +184,8 @@ const CDialogResizeHelper::Param resize_params[] = {
 	{IDC_BUTTON_AUTO_ADD_ACTIVE_PLAYLIST, 1,0,1,0},
 	{IDC_VERBOSE, 1,0,1,0},
 	{IDC_MONITOR, 1,0,1,0},
+	{IDC_RQ_WAIT_LBL, 1,0,1,0},
+	{IDC_RQ_WAIT, 1,0,1,0},
 };
 
 using namespace glb;
@@ -373,6 +383,8 @@ private:
 	ectrlAndString_t eat_header_click_block_flag = { IDC_HIDDEN_HEADER_CLICK_BLOCK_FLAG, &cfg_header_click_block_flag, default_cfg_header_click_block_flag };
 	ectrlAndString_t eat_txt_filter = { IDC_EDIT_AUTO_TXT_FILTER, &cfg_txt_filter, default_cfg_txt_filter };
 	ectrlAndString_t eat_tf_filter = { IDC_EDIT_AUTO_TF_FILTER, &cfg_tf_filter, default_cfg_tf_filter };
+
+	ectrlAndString_t eat_rq_wait = { IDC_RQ_WAIT, &cfg_rq_wait, default_cfg_rq_wait };
 };
 
 void ConvertString8(const pfc::string8 orig, wchar_t* out, size_t max) {
@@ -457,6 +469,7 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow, LPARAM) {
 	cfgToUi(eat_txt_filter);
 	cfgToUi(eat_tf_filter);
 
+	cfgToUi(eat_rq_wait);
 	//static header
 
 	HWND wndStaticHeader = uGetDlgItem(IDC_STATIC_PREF_HEADER);
@@ -604,6 +617,32 @@ void CBookmarkPreferences::OnCheckChange(UINT uNotifyCode, int nId, CWindow wndC
 		on_add_active_playlist();
 		OnChanged();
 	}
+	else if (nId == IDC_EDIT_MODE) {
+		auto db = IsDlgButtonChecked(IDC_EDIT_MODE);
+		GetDlgItem(IDC_1CLK_EDIT_MODE).EnableWindow(!IsDlgButtonChecked(IDC_EDIT_MODE) & BST_CHECKED);
+		OnChanged();
+	}
+	else if (nId == IDC_PLAY_ON_INIT_FLAG) {
+		auto db = IsDlgButtonChecked(IDC_EDIT_MODE);
+		GetDlgItem(IDC_RQ_ON_INIT_FLAG).EnableWindow((bool)((IsDlgButtonChecked(IDC_PLAY_ON_INIT_FLAG) & BST_CHECKED) &&
+			(!IsDlgButtonChecked(IDC_QUEUE_FLAG) & BST_CHECKED)));
+		OnChanged();
+	}
+	else if (nId == IDC_QUEUE_FLAG) {
+		auto db = IsDlgButtonChecked(IDC_EDIT_MODE);
+		GetDlgItem(IDC_RQ_ON_INIT_FLAG).EnableWindow(!IsDlgButtonChecked(IDC_QUEUE_FLAG) & BST_CHECKED);
+		OnChanged();
+	}
+	else if (nId == IDC_MISC_FLAG_DUP_ENABLED) {
+		auto db = IsDlgButtonChecked(IDC_EDIT_MODE); 
+		GetDlgItem(IDC_MISC_FLAG_DUP_REMOVE_PREV).EnableWindow(IsDlgButtonChecked(IDC_MISC_FLAG_DUP_ENABLED) & BST_CHECKED);
+		OnChanged();
+	}
+	else if (nId == IDC_AUTOSAVE_RADIO_TRACK) {
+		auto db = IsDlgButtonChecked(IDC_EDIT_MODE);
+		GetDlgItem(IDC_AUTOSAVE_RADIO_COMMENT_ST).EnableWindow(IsDlgButtonChecked(IDC_AUTOSAVE_RADIO_TRACK) & BST_CHECKED);
+		OnChanged();
+	}
 	else {
 
 		OnChanged();
@@ -660,6 +699,8 @@ void CBookmarkPreferences::reset() {
 	defToUi(eat_txt_filter);
 	defToUi(eat_tf_filter);
 
+	defToUi(eat_rq_wait);
+
 	OnChanged();
 }
 
@@ -679,6 +720,14 @@ void CBookmarkPreferences::apply() {
 	}
 	else {
 		cfgToUi(eat_lapse);
+	}
+
+	buffer = uGetDlgItemText(m_hWnd, eat_rq_wait.idc);
+	if (atoi(buffer) >= 5 && atoi(buffer) <= 60) {
+		uiToCfg(eat_rq_wait);
+	}
+	else {
+		cfgToUi(eat_rq_wait);
 	}
 
 	uiToCfg(bab_as_exit);
@@ -784,6 +833,9 @@ bool CBookmarkPreferences::HasChanged() {
 
 	result |= isUiChanged(eat_txt_filter);
 	result |= isUiChanged(eat_tf_filter);
+
+	result |= isUiChanged(eat_rq_wait);
+
 	return result;
 }
 

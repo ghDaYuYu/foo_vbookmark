@@ -105,12 +105,14 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,25,276,87,10
     CONTROL         "1 Click edit",IDC_1CLK_EDIT_MODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,68,263,50,10
     LTEXT           "Pipeline:",IDC_STATIC_DEST_REC,110,264,28,8
-    EDITTEXT        IDC_EDIT_REC_DST,140,261,115,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_REC_DST,240,261,15,14,ES_AUTOHSCROLL
     PUSHBUTTON      "...",IDC_BUTTON_DST_REC,258,261,17,14
     CONTROL         "Callback monitor (required for auto-creation)",IDC_MONITOR,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,110,276,164,10
-    CONTROL         "Restore also the queue (Queue Editor)",IDC_RQ_ON_INIT_FLAG,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,110,248,140,10
+    CONTROL         "Restore also the queue from Queue Editor",IDC_RQ_ON_INIT_FLAG,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,110,248,151,10
+    EDITTEXT        IDC_RQ_WAIT,192,259,19,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Wait Time (5..60 s):",IDC_RQ_WAIT_LBL,125,262,68,8
 END
 
 IDD_BOOKMARK_DIALOG DIALOGEX 0, 0, 192, 176
