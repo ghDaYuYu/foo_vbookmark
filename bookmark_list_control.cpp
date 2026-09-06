@@ -197,6 +197,21 @@ namespace dlg {
 				CListControlBookmark* plc = (CListControlBookmark*)(ctx);
 				plc->TableEdit_Start(item, subItem);
 			}
+			else {
+                if (same_item_clicked) {
+                    size_t edit_first_col_ndx = SIZE_MAX;
+                    for (size_t w = 0; w < ctx->GetColumnCount(); w++) {
+                        if (edit_first_col_ndx == SIZE_MAX) {
+                            if (listIsColumnEditable(ctx, w)) {
+                                edit_first_col_ndx = w;
+                            }
+                        }
+                    }
+                    if (edit_first_col_ndx != SIZE_MAX) {
+                        plc->TableEdit_Start(item, edit_first_col_ndx);
+                    }
+                }
+            }
 		}
 	}
 

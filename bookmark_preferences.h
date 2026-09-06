@@ -57,7 +57,7 @@
   inline bool is_cfg_Rq_OnInit() { return cfg_queue_flag.get_value() & RQ_ON_INIT_FLAG; }
 
   inline bool is_cfg_Enter_Key_Adv() { return cfg_misc_flag.get_value() & MISC_FLAG_EDIT_ENTER_KEY_ADV; }
-  inline bool is_cfg_1clk_Edit() { return cfg_misc_flag.get_value() & MISC_FLAG_EDIT_1CLK_EDIT; }
+  inline bool is_cfg_1clk_Edit() { return !cfg_edit_mode.get() && cfg_misc_flag.get_value() & MISC_FLAG_EDIT_1CLK_EDIT; }
   inline bool is_cfg_Instant_Write() { return cfg_misc_flag.get_value() & MISC_FLAG_INSTANT_WRITE_ON_EDITS; }
   inline bool is_cfg_LapseEnabled() { return cfg_lapse_flag.get_value() & LAPSE_FLAG_ENABLED; }
   inline bool is_cfg_Dupli_Enabled() { return cfg_misc_flag.get_value() & MISC_DUP_ENABLED_FLAG; }
