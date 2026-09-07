@@ -20,13 +20,13 @@ bookmark_worker::~bookmark_worker()
 	//..
 }
 
-void bookmark_worker::store(const bookmark_t bookmark) {
+void bookmark_worker::store(const bookmark_t bookmark, bool exact_time) {
 
 	bookmark_t newMark;
 
 	if (cfg_monitor.get()) {
 		newMark = bookmark;
-		newMark.set_time(playback_control::get()->playback_get_position());
+		newMark.set_time(playback_control::get()->playback_get_position(), exact_time);
 		gimme_date(newMark);
 	}
 	else {
@@ -40,7 +40,7 @@ void bookmark_worker::store(const bookmark_t bookmark) {
 			FB2K_console_print_e("Get_now_playing failed, can only store time.");
 			songDesc << "Could not find playing song info.";
 
-			newMark.set_time(playback_control_ptr->playback_get_position());
+			newMark.set_time(playback_control_ptr->playback_get_position(), exact_time);
 			newMark.set_desc(songDesc.c_str());
 			newMark.playlist = "";
 			newMark.guid_playlist = pfc::guid_null;
@@ -69,7 +69,7 @@ void bookmark_worker::store(const bookmark_t bookmark) {
 
 			pfc::string8 songPath = dbHandle_item->get_path();
 
-			newMark.set_time(playback_control_ptr->playback_get_position());
+			newMark.set_time(playback_control_ptr->playback_get_position(), exact_time);
 			newMark.set_desc(songDesc);
 			newMark.playlist = playing_pl_name.c_str();	//without using c_str(), the full 80 characters are written every time
 			newMark.guid_playlist = guid_playlist;

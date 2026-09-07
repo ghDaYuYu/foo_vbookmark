@@ -41,7 +41,11 @@ public:
 		t = (std::max)(0.0, t);
 		time = t < KMin_Lapse ? 0.0 : t;
 	}
-	void set_time(double t) {
+	void set_time(double t, bool exact_time = false)) {
+		if (exact_time) {
+			set_exact_time(t);
+			return;
+		}
 		t = (std::max)(0.0, t);
 		time = t < KMin_Lapse ? 0.0 : t;
 	}

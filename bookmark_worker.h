@@ -10,7 +10,7 @@ public:
 	bookmark_worker();
 	~bookmark_worker();
 
-	static void store(const bookmark_t bookmark);
+	static void store(const bookmark_t bookmark, bool exact_time = false);
 	static void restore(size_t index);
 };
 

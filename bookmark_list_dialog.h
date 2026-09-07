@@ -211,13 +211,17 @@ namespace dlg {
 
 			bookmark_t bm = g_bmAuto.getDummy();
 
-			if (!bm.playlist.get_length()) {
+			bool bplaying = playback_control::get()->is_playing();
+			bool bpaused = playback_control::get()->is_paused();
+			bool bretry = bm.need_playlist && bm.need_loc_retries <= LOC_RETRIES;
+
+			if (bplaying && !bpaused && bretry) {
+				bookmark_worker bmWorker;
 				g_bmAuto.User_Reset_Updating();
 				return;
 			}
 
-			bookmark_worker bmWorker;
-			bmWorker.store(bm);
+			bmWorker.store(bm, true);
 
 			CancelUIListEdits();
 

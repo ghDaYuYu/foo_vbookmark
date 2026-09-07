@@ -67,10 +67,13 @@ void bookmark_automatic::updateDummyTime() {
 
 		bool bcan_autosave_newtrack = cfg_autosave_newtrack.get();
 		bcan_autosave_newtrack &= cfg_autosave_radio_newtrack.get() || !dummy.isRadio();
+		bool bexpent_retries = dummy.need_playlist && dummy.need_loc_retries > LOC_RETRIES;
+
+		//dummy.need_playlist could maybe be used in combination to m_updating_playlist ? updating meaning implying retries or delayed ?
 
 		bool b_write_store = false;
 
-		if (b_data_srv_available || !dummy.need_playlist) {
+		if (b_data_srv_available || !dummy.need_playlist || bexpent_retries) {
 
 			// loc available
 
@@ -158,6 +161,7 @@ void bookmark_automatic::updateDummyTime() {
 
 			// check lapse first, retries may be > LOC_RETRIES for non-playlist items (queued, ...)
 			bool blapse_enabled_completed = is_cfg_LapseEnabled() && m_updatePlaylistLapse > get_cfg_lapse();
+			bool bexpent_retries = dummy.need_playlist && dummy.need_loc_retries > LOC_RETRIES;
 
 			if (blapse_enabled_completed || (!is_cfg_LapseEnabled() && dummy.need_loc_retries > LOC_RETRIES)) {
 
@@ -178,8 +182,10 @@ void bookmark_automatic::updateDummyTime() {
 
 					// AUTO - CREATE
 					bool bres = upgradeDummy(g_guiLists);
-					m_updatePlaylistLapseStart = DBL_MAX;
-					m_updating = dummy.need_playlist = false;
+					if (!dummy.need_playlist || bexpent_retries) {
+						m_updatePlaylistLapseStart = DBL_MAX;
+						m_updating = dummy.need_playlist = false;
+					}
 
 					//
 
@@ -575,7 +581,11 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 		}
 	}
 
-	if (dummy.need_playlist && dummy.need_loc_retries <= LOC_RETRIES) {
+	bool bexpent_retries = dummy.need_playlist && dummy.need_loc_retries > LOC_RETRIES;
+	bool blapse_enabled_completed = is_cfg_LapseEnabled() && m_updatePlaylistLapse > get_cfg_lapse();
+	//todo: expent retries should have been sorted out before getting here...
+	//if (dummy.need_playlist && !blapse_enabled_completed && dummy.need_loc_retries <= LOC_RETRIES) {
+	if (!blapse_enabled_completed && !bexpent_retries) {
 		return false;
 	}
 
@@ -696,9 +706,11 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 					if (!dummy.need_playlist && (brev_time && brev_path_guid_subsong)) {
 						FB2K_console_print_v("Skipping duplicated bookmark: ", dummy.path);
 					}
-					FB2K_console_print_v("Nothing to do.");
-					// nothing to do
-					return false;
+					if (!bexpent_retries) {
+						FB2K_console_print_v("Nothing to do.");
+						// nothing to do
+						return false;
+					}
 				}
 			}
 		}
