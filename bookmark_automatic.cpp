@@ -498,6 +498,14 @@ bool bookmark_automatic::CheckRadioFilter(pfc::string8 song_desc, const pfc::str
 
 	pfc::string8 songDesc = song_desc.get_length() ? song_desc : dummy.get_fdn();
 
+	if (!songDesc.get_length()) {
+		//todo
+		//check src bm_play_callback::on_playback_time, dyna=false, no fdn
+		FB2K_console_print_v("Store is skipping empty entry, info: ", dummy.get_desc());
+		return false;
+		//
+	}
+
 	fltr::get_filters(p_csvfilters, vfilters);
 	ra_hook.setData(dummy.get_fdn(), vfilters);
 
