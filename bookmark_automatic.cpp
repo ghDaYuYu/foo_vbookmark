@@ -730,6 +730,9 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 		}
 		else {
 
+			dummy.set_fdn(pfc::string8());
+			dummy.need_playlist = false;
+
 			g_store.AddItem(std::move(bookmark_t(dummy)));
 			g_store.Write();
 
