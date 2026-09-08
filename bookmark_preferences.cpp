@@ -394,10 +394,16 @@ void ConvertString8(const pfc::string8 orig, wchar_t* out, size_t max) {
 void InitDateCombo(HWND hwndParent, UINT idc_date, pfc::string8 strval) {
 
 	std::vector<std::string> vfd = {
+		"%a %d %b %H:%M:%S %Y",
 		"%a %b %d %H:%M:%S %Y",
+		"%d-%m-%y %H:%M:%S %a",
 		"%y-%m-%d %H:%M:%S %a",
+		"%d-%m-%y %H:%M:%S",
+		"%y-%m-%d %H:%M:%S",
+		"%d-%m-%y %H:%M %a",
 		"%y-%m-%d %H:%M %a",
-		"%y-%m-%d %H:%M"
+		"%d-%m-%y %H:%M",
+		"%y-%m-%d %H:%M",
 	};
 
 	CComboBox cmb = GetDlgItem(hwndParent, idc_date);
