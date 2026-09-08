@@ -63,7 +63,7 @@ namespace filters {
 
 	void transform_if_first_of_word(char& c)
 	{
-		if ((*(&c - sizeof(char))) == ' ')
+		if ((*(&c - sizeof(char))) == ' ' || (*(&c - sizeof(char))) == '.' || (*(&c - sizeof(char))) == '-')
 			c = toupper(c);
 	}
 
