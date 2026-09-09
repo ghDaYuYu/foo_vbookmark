@@ -12,27 +12,44 @@ public:
 	~bookmark_store();
 
 	const std::vector<bookmark_t>& GetMasterList() {
+
+		std::lock_guard<std::mutex> guard(m_store_lock);
+
 		return m_masterList;
 	}
 
 	void SetMasterList(std::vector<bookmark_t> v) {
+		//eg. reordering
+
+		std::lock_guard<std::mutex> guard(m_store_lock);
+
 		m_is_dirty = true;
 		m_masterList = std::move(v);
 	}
 
 	size_t Size() {
+
+		std::lock_guard<std::mutex> guard(m_store_lock);
+
 		return m_masterList.size();
 	};
 
 	bool Initialize() { 
+
 		m_is_dirty = false;
 		m_persist.readDataFileJSON(m_masterList); /*todo*/return true;
+
 	}
 
 	const bookmark_t _getItem(size_t pos) {
+
 		return m_masterList.at(pos);
+
 	}
 	const bookmark_t GetItem(size_t pos) {
+
+		std::lock_guard<std::mutex> guard(m_store_lock);
+
 		return _getItem(pos);
 	}
 
@@ -40,6 +57,9 @@ public:
 		m_masterList[pos] = rec;
 	}
 	void SetItem(size_t pos, bookmark_t rec) {
+
+		std::lock_guard<std::mutex> guard(m_store_lock);
+
 		m_is_dirty = true;
 		_setItem(pos, rec);
 	}
@@ -48,6 +68,9 @@ public:
 		m_masterList.emplace_back(rec);
 	}
 	void AddItem(const bookmark_t rec) {
+
+		std::lock_guard<std::mutex> guard(m_store_lock);
+
 		m_is_dirty = true;
 		_addItem(rec);
 	}
@@ -56,14 +79,22 @@ public:
 		pfc::reorder_t(m_masterList, p_order.get_ptr(), p_count);
 	}
 	void Reorder(const pfc::array_t<t_size> p_order, t_size p_count) {
+
+		std::lock_guard<std::mutex> guard(m_store_lock);
+
 		m_is_dirty = true;
 		_reorder(p_order, p_count);
 	}
 	void _write() {
 
 		auto write_callback = [this] {
+
+			std::lock_guard<std::mutex> guard(m_store_lock);
+
 			m_is_dirty = false;
 		};
+
+		std::lock_guard<std::mutex> guard(m_store_lock);
 
 		m_persist.writeDataFile(m_masterList, write_callback);
 
@@ -72,9 +103,13 @@ public:
 
 	void Write(bool thread_pool = true) {
 
-		if (!m_is_dirty) {
-			FB2K_console_print_v("Saving... nothing to do.");
-			return;
+		{
+			std::lock_guard<std::mutex> guard(m_store_lock);
+
+			if (!m_is_dirty) {
+				FB2K_console_print_v("Saving... nothing to do.");
+				return;
+			}
 		}
 
 		//not thread safe
@@ -96,6 +131,9 @@ public:
 
 			auto work = [this] {
 				try {
+
+					std::lock_guard<std::mutex> guard(m_store_lock);
+
 					this->m_persist.writeDataFileJSON(this->m_masterList);
 					this->m_is_dirty = false;
 					FB2K_console_print_v("Saved.");
@@ -113,17 +151,26 @@ public:
 		pfc::remove_mask_t(m_masterList, p_mask);
 	}
 	void Remove(const bit_array_bittable p_mask) {
+
+		std::lock_guard<std::mutex> guard(m_store_lock);
+
 		m_is_dirty = true;
 		_remove(p_mask);
 	}
 
 	void _clear() { m_masterList.clear(); }
 	void Clear() {
+
+		std::lock_guard<std::mutex> guard(m_store_lock);
+
 		m_is_dirty = true;
 		_clear();
 	}
 
 private:
+
+	inline static std::mutex m_store_lock;
+
 	std::vector<bookmark_t> m_masterList;
 	bookmark_persistence m_persist;
 	bool m_is_dirty = false;
