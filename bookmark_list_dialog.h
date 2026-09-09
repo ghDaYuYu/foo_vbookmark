@@ -205,25 +205,19 @@ namespace dlg {
 			}
 		}
 
-		//context menu and toolbar
+		static void CancelUIListEdits() {
 
-		static void addBookmark() {
+			for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
 
-			bookmark_t bm = g_bmAuto.getDummy();
-
-			bool bplaying = playback_control::get()->is_playing();
-			bool bpaused = playback_control::get()->is_paused();
-			bool bretry = bm.need_playlist && bm.need_loc_retries <= LOC_RETRIES;
-
-			if (bplaying && !bpaused && bretry) {
-				bookmark_worker bmWorker;
-				g_bmAuto.User_Reset_Updating();
-				return;
+				if ((*it)->TableEdit_IsActive()) {
+					(*it)->TableEdit_Abort(false);
+				}
 			}
+		}
 
-			bmWorker.store(bm, true);
+		static void UpdateUINewBookmarks() {
 
-			CancelUIListEdits();
+			CListCtrlMarkDialog::CancelUIListEdits();
 
 			for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
 				size_t item = (std::max)(0, (int)g_store.Size() - 1);
@@ -235,10 +229,50 @@ namespace dlg {
 				(*it)->EnsureItemVisible(item, false);
 				(*it)->SetFocusItem(item);
 			}
+		}
 
-			FB2K_console_print_v("Bookmark stored.");
+		//context menu and toolbar
 
-			g_store.Write();
+		static void addBookmark() {
+
+			bookmark_worker bmWorker;
+			bookmark_t bm;
+			g_bmAuto.updateDummy();
+			bm = g_bmAuto.getDummy();
+
+			bool bplaying = playback_control::get()->is_playing();
+			bool bpaused = playback_control::get()->is_paused();
+
+			double pos = playback_control::get()->playback_get_position();
+
+			std::function add_bookmark_callback([](double p_pos, bookmark_t p_bm) {
+				p_bm.set_exact_time(p_pos);
+				bookmark_worker bmWorker;
+				bmWorker.store(p_bm, true);
+
+				FB2K_console_print_v("New bookmark stored.");
+				g_store.Write();
+
+				UpdateUINewBookmarks();
+
+			});
+
+			ThreadUtils::cmdThread cmd;
+			cmd.add([pos, add_bookmark_callback] {
+				bookmark_t tbm;
+				size_t counter = 0;
+				do {
+					counter++;
+					if (tbm.get_time()) {
+						Sleep(100);
+					}
+
+					g_bmAuto.updateDummy();
+
+					tbm = g_bmAuto.getDummy();
+				} while (!tbm.playlist.get_length() && counter < 4);
+				add_bookmark_callback(pos, tbm);
+			});
 		}
 
 		static void clearBookmarks() {
