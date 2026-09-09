@@ -87,16 +87,16 @@ public:
 	}
 	void _write() {
 
-		auto write_callback = [this] {
+		auto write_callback = [this](std::lock_guard<std::mutex>* p_guard) {
 
-			std::lock_guard<std::mutex> guard(m_store_lock);
+			std::lock_guard<std::mutex>* guard = p_guard;
 
 			m_is_dirty = false;
 		};
 
 		std::lock_guard<std::mutex> guard(m_store_lock);
 
-		m_persist.writeDataFile(m_masterList, write_callback);
+		m_persist.writeDataFile(m_masterList, write_callback, &guard);
 
 		return;
 	}

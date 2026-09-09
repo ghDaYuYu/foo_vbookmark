@@ -77,8 +77,13 @@ void add_rec(std::vector<json_t*> &vjson, const std::vector<pfc::string8>& vlbl,
 	}
 }
 
-void bookmark_persistence::writeDataFile(const std::vector<bookmark_t>& masterList, std::function<void() > sf_write_callback) {
-	cmdThFile.add([this, &masterList, sf_write_callback] { bool res = writeDataFileJSON(masterList); if (res) sf_write_callback(); });
+void bookmark_persistence::writeDataFile(const std::vector<bookmark_t>& masterList,
+		std::function<void(std::lock_guard<std::mutex>* p_guard)> sf_write_callback, std::lock_guard<std::mutex>* p_guard) {
+	
+	cmdThFile.add([this, &masterList, sf_write_callback, p_guard] {
+		bool res = writeDataFileJSON(masterList);
+		if (res) sf_write_callback(p_guard);
+		});
 }
 
 //save masterList to persistent storage
