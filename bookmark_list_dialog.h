@@ -217,6 +217,8 @@ namespace dlg {
 
 		static void UpdateUINewBookmarks() {
 
+			std::lock_guard<std::mutex> ui_guard(m_mx_UI_Add_Bookmark_Refresh);
+
 			CListCtrlMarkDialog::CancelUIListEdits();
 
 			for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
@@ -1209,6 +1211,8 @@ namespace dlg {
 		std::array<bool, colcast(colID::N_COLUMNS)> m_cols_active;
 		pfc::array_t<size_t> m_cols_content;
 		uint32_t m_last_focus = 0;
+
+		inline static std::mutex m_mx_UI_Add_Bookmark_Refresh;
 
 		friend class CListControlBookmark;
 	};
