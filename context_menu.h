@@ -43,6 +43,10 @@ static const GUID guid_ctx_menu_node_properties =
 static const GUID guid_ctx_menu_node_add_bookmark =
 { 0xd445a8db, 0xdfb6, 0x442d, { 0xa3, 0xc8, 0x72, 0x74, 0x4, 0x3c, 0x92, 0x2f } };
 
+// {8135D2FE-ACCA-4C3C-9921-E982F70544ED}
+static const GUID guid_ctx_menu_node_add_selected_bookmark =
+{ 0x8135d2fe, 0xacca, 0x4c3c, { 0x99, 0x21, 0xe9, 0x82, 0xf7, 0x5, 0x44, 0xed } };
+
 // {D445A8DB-DFB6-442D-A3C8-7274043C922F}
 static const GUID guid_ctx_menu_node_restore_playlist =
 { 0xfe6bcf28, 0xf4b8, 0x40d4, { 0x8d, 0x65, 0x7, 0x17, 0xed, 0x73, 0xcc, 0x93 } };
@@ -66,6 +70,17 @@ class contextmenu_item_node_add_vb : public contextmenu_item_node_leaf
 {
 public:
 	contextmenu_item_node_add_vb();
+	bool get_display_data(pfc::string_base& p_out, unsigned& p_displayflags, metadb_handle_list_cref p_data, const GUID& p_caller);
+	void execute(metadb_handle_list_cref p_data, const GUID& p_caller);
+	bool get_description(pfc::string_base& p_out);
+	GUID get_guid();
+	bool is_mappable_shortcut();
+};
+
+class contextmenu_item_node_add_selected_vb : public contextmenu_item_node_leaf
+{
+public:
+	contextmenu_item_node_add_selected_vb();
 	bool get_display_data(pfc::string_base& p_out, unsigned& p_displayflags, metadb_handle_list_cref p_data, const GUID& p_caller);
 	void execute(metadb_handle_list_cref p_data, const GUID& p_caller);
 	bool get_description(pfc::string_base& p_out);

@@ -6,11 +6,14 @@
 
 //ref. to bookmark_dialog.cpp
 void bbookmarkHook_store();
+//todo: rev unnecessary params
+void bbookmarkHook_store_selected(metadb_handle_list mhl, bool from_playlist);
 void bbookmarkHook_restore();
 void bbookmarkHook_restoreActivePlaylist(size_t last_played, bool check_file);
 void bbookmarkHook_clear();
 
 bool bbookmarkHook_canStore();
+bool bbookmarkHook_canStoreSelected();
 bool bbookmarkHook_canRestore();
 bool bbookmarkHook_canRestoreActivePlaylist(size_t &last_played, bool check_file);
 bool bbookmarkHook_canClear();
@@ -53,6 +56,9 @@ contextmenu_item::t_enabled_state contextmenu_item_foo_vb::get_enabled_state(uns
 
 void contextmenu_item_foo_vb::item_execute_simple(unsigned p_index, const GUID& p_node, metadb_handle_list_cref p_data, const GUID& p_caller)
 {
+
+	//todo: duplicated in node::execute
+
 	//called from toolbar
 	if (p_node == pfc::guid_null)
 		return;
@@ -80,6 +86,15 @@ void contextmenu_item_foo_vb::item_execute_simple(unsigned p_index, const GUID& 
 		if (bbookmarkHook_canStore())
 			bbookmarkHook_store();
 		return;
+	}
+
+	if (p_node == guid_ctx_menu_node_add_selected_bookmark) {
+	
+		bool bfrom_playlist = pfc::guid_equal(p_caller, contextmenu_item::caller_active_playlist_selection)
+			|| pfc::guid_equal(p_caller, contextmenu_item::caller_active_playlist);
+
+		if (bbookmarkHook_canStoreSelected())
+			bbookmarkHook_store_selected(p_data, bfrom_playlist);
 	}
 }
 
@@ -127,7 +142,9 @@ bool contextmenu_item_node_root_popup_vb::get_display_data(pfc::string_base& p_o
 
 	if (!(pfc::guid_equal(p_caller, contextmenu_item::caller_active_playlist_selection)
 		|| pfc::guid_equal(p_caller, contextmenu_item::caller_active_playlist) ||
-		pfc::guid_equal(p_caller, contextmenu_item::caller_now_playing))) {
+		pfc::guid_equal(p_caller, contextmenu_item::caller_now_playing) ||
+		pfc::guid_equal(p_caller, contextmenu_item::caller_media_library_viewer) ||
+		pfc::guid_equal(p_caller, contextmenu_item::caller_undefined))) {
 		return false;
 	}
 
@@ -150,6 +167,9 @@ contextmenu_item_node* contextmenu_item_node_root_popup_vb::get_child(t_size p_i
 		}
 		else {
 			if (p_index == 0) {
+				return new contextmenu_item_node_add_selected_vb();
+			}
+			else if (p_index == 1) {
 				return new contextmenu_item_node_add_vb();
 			}
 			else if (p_index == 1) {
@@ -211,8 +231,8 @@ contextmenu_item_node_add_vb::contextmenu_item_node_add_vb()
 bool contextmenu_item_node_add_vb::get_display_data(pfc::string_base& p_out, unsigned& p_displayflags, metadb_handle_list_cref p_data, const GUID& p_caller)
 {
 	metadb_handle_ptr mhp;
-	auto np = playback_control_v3::get()->get_now_playing(mhp);
-	if (!p_data.get_count() || p_data.get_item(0) != mhp) {
+	auto bres = playback_control_v3::get()->get_now_playing(mhp);
+	if (!bres || !p_data.get_count()) {
 			p_displayflags = FLAG_DISABLED_GRAYED;
 	}
 	else {
@@ -240,6 +260,49 @@ GUID contextmenu_item_node_add_vb::get_guid()
 }
 
 bool contextmenu_item_node_add_vb::is_mappable_shortcut()
+{
+	return true;
+}
+
+//Add single selection bookmark
+contextmenu_item_node_add_selected_vb::contextmenu_item_node_add_selected_vb()
+{ }
+
+bool contextmenu_item_node_add_selected_vb::get_display_data(pfc::string_base& p_out, unsigned& p_displayflags, metadb_handle_list_cref p_data, const GUID& p_caller)
+{
+	metadb_handle_ptr mhp;
+	auto np = playback_control_v3::get()->get_now_playing(mhp);
+	if (!p_data.get_count() == 1) {
+		p_displayflags = FLAG_DISABLED_GRAYED;
+	}
+	else {
+		p_displayflags = 0;
+	}
+	p_out = "Add bookmark";
+	return true;
+}
+
+bool contextmenu_item_node_add_selected_vb::get_description(pfc::string_base& p_out)
+{
+	p_out = "Add single selection bookmark";
+	return true;
+}
+
+void contextmenu_item_node_add_selected_vb::execute(metadb_handle_list_cref p_data, const GUID& p_caller)
+{
+	bool bfrom_playlist = pfc::guid_equal(p_caller, contextmenu_item::caller_active_playlist_selection)
+		|| pfc::guid_equal(p_caller, contextmenu_item::caller_active_playlist);
+
+	if (bbookmarkHook_canStoreSelected())
+		bbookmarkHook_store_selected(p_data, bfrom_playlist);
+}
+
+GUID contextmenu_item_node_add_selected_vb::get_guid()
+{
+	return guid_ctx_menu_node_add_selected_bookmark;
+}
+
+bool contextmenu_item_node_add_selected_vb::is_mappable_shortcut()
 {
 	return true;
 }

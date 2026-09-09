@@ -233,6 +233,46 @@ namespace dlg {
 
 		//context menu and toolbar
 
+		static void addBookmarkSelected(metadb_handle_list p_mhl, bool bfrom_playlist) {
+			auto mh = p_mhl.get_item(0);
+			bookmark_t bm;
+
+			bm.set_current_date();
+
+			bm.path = mh->get_path();
+
+			if (bm.isRadio()) {
+				FB2K_console_print_v("Skipping bookmark to external selection. Please, try Now Playing instead.", bm.get_desc());
+				return;
+			}
+
+			bm.subsong = mh->get_subsong_index();
+
+			pfc::string8 desc;
+			titleformat_object::ptr desc_format;
+			static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(desc_format, cfg_desc_format.get_value().c_str());
+			bool b_done = mh->format_title(NULL, desc, desc_format, NULL);
+			bm.set_desc(desc);
+
+			if (bfrom_playlist) {
+				pfc::string playlist;
+				playlist_manager::get()->activeplaylist_get_name(playlist);
+				bm.playlist = playlist;
+				size_t playlist_index = playlist_manager_v6::get()->get_active_playlist();
+				GUID guid = playlist_manager_v6::get()->playlist_get_guid(playlist_index);
+				bm.guid_playlist = guid;
+			}
+
+			bookmark_worker bmWorker;
+			bmWorker.store(bm, true);
+
+			//g_store.Write();
+
+			// UI
+
+			UpdateUINewBookmarks();
+		}
+
 		static void addBookmark() {
 
 			bookmark_worker bmWorker;
@@ -301,6 +341,12 @@ namespace dlg {
 			return play_control::get()->is_playing();
 		}
 
+		static bool canStoreSelected() {
+			metadb_handle_list mhl;
+			ui_selection_manager::get()->get_selection(mhl);
+			return mhl.get_count() == 1;
+		}
+		
 		static bool canRestore() {
 			return (g_primaryGuiList && g_primaryGuiList->GetSingleSel() != ~0)
 				|| g_store.Size();
