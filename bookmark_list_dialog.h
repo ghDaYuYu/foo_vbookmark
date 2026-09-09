@@ -265,10 +265,12 @@ namespace dlg {
 				bm.guid_playlist = guid;
 			}
 
-			bookmark_worker bmWorker;
-			bmWorker.store(bm, true);
+			ThreadUtils::cmdThread cmd;
+			cmd.add([bm]() {
 
-			//g_store.Write();
+				bookmark_worker bmWorker;
+				bmWorker.store(bm, true);
+			});
 
 			// UI
 
