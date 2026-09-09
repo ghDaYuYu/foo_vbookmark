@@ -126,6 +126,24 @@ public:
 		desc = tmp.desc;
 		comment = tmp.comment;
 	}
+
+	inline void set_current_date() {
+
+		pfc::string8 tmp_date;
+
+		auto t = std::time(nullptr);
+		auto tm = *std::localtime(&t);
+		auto sctime = asctime(&tm);
+
+		tmp_date.set_string(sctime);
+		tmp_date.truncate_last_char();
+
+		char buffer[DATE_BUFFER_SIZE];
+		std::strftime(buffer, DATE_BUFFER_SIZE, cfg_date_format.get(), &tm);
+		runtime_date = buffer;
+		date.move(tmp_date);
+	}
+
 };
 
 extern void unix_str_date_to_time(pfc::string8 unix_date, time_t& out_rawtime, tm& out_tm);

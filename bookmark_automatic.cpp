@@ -419,10 +419,15 @@ void bookmark_automatic::updateDummy() {
 			}
 		}
 
-		m_updating = !b_done;
-		m_updating &= dummy.need_loc_retries <= LOC_RETRIES;
+		if (core_api::is_main_thread()) {
+			//monitor and auto-creation
+			m_updating = !b_done;
+			m_updating &= dummy.need_loc_retries <= LOC_RETRIES;
 
-		dummy.set_time(playback_control_ptr->playback_get_position());
+			dummy.set_time(playback_control_ptr->playback_get_position());
+			dummy.set_current_date();
+		}
+
 		dummy.path = songPath;
 
 		if (!dummy.isRadio()) {
@@ -446,7 +451,6 @@ void bookmark_automatic::updateDummy() {
 			dummy.guid_playlist = guid_playing_playlist;
 			dummy.need_playlist = !playlist_available;
 		}
-		gimme_date(dummy);
 
 		//dyna
 		pfc::string8 station_name;
@@ -454,8 +458,10 @@ void bookmark_automatic::updateDummy() {
 			dummy.set_comment(station_name);
 		}
 
-		if (m_updating) {
-			++dummy.need_loc_retries;
+		if (core_api::is_main_thread()) {
+			if (m_updating) {
+				++dummy.need_loc_retries;
+			}
 		}
 	}
 	else {
@@ -489,19 +495,18 @@ bool bookmark_automatic::CheckAutoPlaylistFilter() {
 	return true;
 }
 
-bool bookmark_automatic::CheckRadioFilter(pfc::string8 song_desc, const pfc::string8 p_csvfilters, const pfc::string8 p_tf_filter) {
+bool bookmark_automatic::CheckRadioFilter(pfc::string8 p_song_desc, const pfc::string8 p_csvfilters, const pfc::string8 p_tf_filter) {
 
 	bool bres = true;
 
 	radio_filter_titleformat_hook ra_hook;
 	std::vector<pfc::string8>vfilters;
 
-	pfc::string8 songDesc = song_desc.get_length() ? song_desc : dummy.get_fdn();
+	pfc::string8 songDesc = p_song_desc.get_length() ? p_song_desc : dummy.get_fdn();
 
 	if (!songDesc.get_length()) {
-		//todo
-		//check src bm_play_callback::on_playback_time, dyna=false, no fdn
-		FB2K_console_print_v("Store is skipping empty entry, info: ", dummy.get_desc());
+		//
+		FB2K_console_print_v("Store skipping empty fdn, info: ", dummy.get_desc());
 		return false;
 		//
 	}

@@ -57,7 +57,7 @@ public:
 
 	bool CheckAutoPlaylistFilter();
 	bool CheckRadioFilter() { return CheckRadioFilter("", cfg_txt_filter.get_value(), cfg_tf_filter.get_value()); }
-	bool CheckRadioFilter(pfc::string8 song_desc, const pfc::string8 p_csvfilters, const pfc::string8 p_tf_filter);
+	bool CheckRadioFilter(pfc::string8 p_song_desc, const pfc::string8 p_csvfilters, const pfc::string8 p_tf_filter);
 
 	void updateDummyTime();
 	void updateDummy();
