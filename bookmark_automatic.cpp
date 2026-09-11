@@ -594,11 +594,12 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 		}
 	}
 
-	bool bexpent_retries = dummy.need_playlist && dummy.need_loc_retries > LOC_RETRIES;
-	bool blapse_enabled_completed = is_cfg_LapseEnabled() && m_updatePlaylistLapse > get_cfg_lapse();
-	//todo: expent retries should have been sorted out before getting here...
-	//if (dummy.need_playlist && !blapse_enabled_completed && dummy.need_loc_retries <= LOC_RETRIES) {
-	if (!blapse_enabled_completed && !bexpent_retries) {
+	bool bcan_retry = dummy.need_playlist && dummy.need_loc_retries < LOC_RETRIES;
+
+	bool blapse_completed = !is_cfg_LapseEnabled() || m_updatePlaylistLapse > get_cfg_lapse();
+
+	if (bcan_retry && !blapse_completed) {
+
 		return false;
 	}
 
