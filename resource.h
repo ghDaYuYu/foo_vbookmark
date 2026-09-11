@@ -51,6 +51,11 @@
 #define IDC_RQ_ON_INIT_FLAG             1061
 
 // Next default values for new objects
+#define IDC_STATIC_DEST_REC             1051
+#define IDC_EDIT_REC_DST                1052
+#define IDC_BUTTON1                     1053
+#define IDC_BUTTON_DST_REC              1053
+
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS

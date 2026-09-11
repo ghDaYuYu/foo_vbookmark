@@ -32,6 +32,8 @@
   extern cfg_string cfg_rq_wait;
 
 //cfg_queue_flag
+  extern cfg_string cfg_dst_rec_path;
+
 #define QUEUE_RESTORE_TO_FLAG                 1 << 0
 #define QUEUE_FLUSH_FLAG                      1 << 1
 #define QUEUE_CUST2_FLAG                      1 << 2

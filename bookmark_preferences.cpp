@@ -72,16 +72,18 @@ static const GUID guid_cfg_rq_wait =
 { 0xe5864bb5, 0x774e, 0x4466, { 0x8c, 0x4d, 0xe1, 0xca, 0x9a, 0x6a, 0xc4, 0x3d } };
 
 // defaults
+// {442B43E2-3492-4698-A590-889846C681CA}
+static const GUID guid_cfg_dst_rec_path = { 0x442b43e2, 0x3492, 0x4698, { 0xa5, 0x90, 0x88, 0x98, 0x46, 0xc6, 0x81, 0xca } };
 
-static const pfc::string8 default_cfg_bookmark_desc_format = "%title% - $if2(%album% - ,)%artist%";
-static const pfc::string8 default_cfg_date_format = "%y-%m-%d %H:%M";
+static const pfc::string8 default_cfg_bookmark_desc_format = "%title% - $if2(%album% - ,- )%artist%";
+static const pfc::string8 default_cfg_date_format = "%a %b %d %H:%M:%S %Y";
 static const bool default_cfg_display_ms = false;
 static const pfc::string8 default_cfg_autosave_newtrack_playlists = "Podcatcher";
 
 static const bool default_cfg_autosave_newtrack = false;
 static const bool default_cfg_autosave_focus_newtrack = true;
-static const bool default_cfg_autosave_radio_newtrack = true;
-static const bool default_cfg_autosave_radio_comment = true;
+static const bool default_cfg_autosave_radio_newtrack = false;
+static const bool default_cfg_autosave_radio_comment = false;
 static const bool default_cfg_autosave_filter_newtrack = false;
 static const bool default_cfg_autosave_on_quit = false;
 
@@ -93,7 +95,7 @@ static const pfc::string8 default_cfg_lapse = "10";
 static const int default_cfg_queue_flag = 0;
 static const int default_cfg_status_flag = 0;
 
-static const bool default_cfg_edit_mode = true;
+static const bool default_cfg_edit_mode = false;
 
 static const int default_cfg_misc_flag = 0;
 
@@ -107,6 +109,8 @@ static const pfc::string8 default_cfg_txt_filter = "Radio Classic Rock,RockClass
 static const pfc::string8 default_cfg_tf_filter = "$if($or($strstr(%title%,ANEWSFM),$cont_radio_filters(%title% %artist%),$in_radio_filters(%title%)),1,0)";
 
 // cfg_var
+
+static const pfc::string8 default_cfg_dst_rec_path = "";
 
 cfg_string cfg_desc_format(guid_cfg_desc_format, default_cfg_bookmark_desc_format.c_str());
 cfg_string cfg_date_format(guid_cfg_date_format, default_cfg_date_format.c_str());
@@ -140,6 +144,8 @@ cfg_string cfg_txt_filter(guid_cfg_txt_filter, default_cfg_txt_filter.c_str());
 cfg_string cfg_tf_filter(guid_cfg_tf_filter, default_cfg_tf_filter.c_str());
 
 cfg_string cfg_rq_wait(guid_cfg_rq_wait, default_cfg_rq_wait);
+
+cfg_string cfg_dst_rec_path(guid_cfg_dst_rec_path, default_cfg_dst_rec_path);
 
 struct boxAndBool_t {
 	int idc;
@@ -186,6 +192,11 @@ const CDialogResizeHelper::Param resize_params[] = {
 	{IDC_MONITOR, 1,0,1,0},
 	{IDC_RQ_WAIT_LBL, 1,0,1,0},
 	{IDC_RQ_WAIT, 1,0,1,0},
+
+	{IDC_STATIC_DEST_REC, 1,0,1,0},
+	{IDC_EDIT_REC_DST, 1,0,1,0},
+	{IDC_BUTTON_DST_REC, 1,0,1,0},
+
 };
 
 using namespace glb;
@@ -385,6 +396,8 @@ private:
 	ectrlAndString_t eat_tf_filter = { IDC_EDIT_AUTO_TF_FILTER, &cfg_tf_filter, default_cfg_tf_filter };
 
 	ectrlAndString_t eat_rq_wait = { IDC_RQ_WAIT, &cfg_rq_wait, default_cfg_rq_wait };
+
+	ectrlAndString_t eat_dst_rec_path = { IDC_EDIT_REC_DST, &cfg_dst_rec_path, default_cfg_dst_rec_path };
 };
 
 void ConvertString8(const pfc::string8 orig, wchar_t* out, size_t max) {
@@ -476,6 +489,8 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow, LPARAM) {
 	cfgToUi(eat_tf_filter);
 
 	cfgToUi(eat_rq_wait);
+	cfgToUi(eat_dst_rec_path);
+
 	//static header
 
 	HWND wndStaticHeader = uGetDlgItem(IDC_STATIC_PREF_HEADER);
@@ -707,6 +722,8 @@ void CBookmarkPreferences::reset() {
 
 	defToUi(eat_rq_wait);
 
+	defToUi(eat_dst_rec_path);
+
 	OnChanged();
 }
 
@@ -785,6 +802,8 @@ void CBookmarkPreferences::apply() {
 		}
 	}
 
+	uiToCfg(eat_dst_rec_path);
+
 	RefreshTitleFormatResults();
 	OnChanged();
 }
@@ -841,6 +860,8 @@ bool CBookmarkPreferences::HasChanged() {
 	result |= isUiChanged(eat_tf_filter);
 
 	result |= isUiChanged(eat_rq_wait);
+
+	result |= isUiChanged(eat_dst_rec_path);
 
 	return result;
 }

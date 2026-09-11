@@ -1,5 +1,5 @@
 #pragma once
-#include <mutex>
+
 #include "bookmark_types.h"
 #include "bookmark_preferences.h"
 
@@ -61,10 +61,10 @@ public:
 
 	void updateDummyTime();
 	void updateDummy();
-#ifdef REC_AUDIO
+
 	bool IsRecording(bool start, pfc::string8 path/*, pfc::string8 artist, pfc::string8 title*/);
 	void StartRecording(std::list< dlg::CListControlBookmark*> guiLists, bool start, pfc::string8 path);
-#endif
+
 	bool upgradeDummy(std::list< dlg::CListControlBookmark*> guiList);
 
 	void ResetRestoredDummy();

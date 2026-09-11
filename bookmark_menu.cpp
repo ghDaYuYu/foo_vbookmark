@@ -11,6 +11,10 @@ static const GUID guid_restoreBookmark = { 0xc23afd1a, 0xf7bd, 0x4b8f, { 0xa0, 0
 static const GUID guid_restoreBookmarkActivePlaylistLastPlayed = { 0xafc94d45, 0x65cf, 0x4b41, { 0x97, 0x7e, 0x52, 0xdf, 0xb2, 0xde, 0x38, 0x25 } };
 static const GUID guid_clearBookmarks = { 0x2e65ef5a, 0x8620, 0x4cee, { 0xaf, 0x8f, 0xac, 0xd0, 0x6, 0x97, 0x7b, 0xa9 } };
 
+static const GUID guid_startRecording = { 0xe93927e9, 0xc0bd, 0x4485, { 0x8c, 0xa6, 0x26, 0xb8, 0x81, 0x9c, 0x89, 0x95 } };
+static const GUID guid_stopRecording = { 0x42b81436, 0xf423, 0x4341, { 0xa1, 0xcf, 0x1a, 0xab, 0x99, 0x24, 0x59, 0x58 } };
+
+
 static mainmenu_group_popup_factory g_mainmenu_group(guid_vbookmark_main_menu_group_id, mainmenu_groups::playback, mainmenu_commands::sort_priority_dontcare, COMPONENT_NAME_HC);
 
 //ref. to bookmark_dialog.cpp
@@ -38,6 +42,10 @@ public:
 		cmd_restore,
 		cmd_restoreActivePlaylistLastPlayed,
 		cmd_clearBookmarks,
+
+		cmd_startRecording,
+		cmd_stopRecording,
+
 		cmd_total
 	};
 
@@ -57,6 +65,10 @@ public:
 		case cmd_restore: return guid_restoreBookmark;
 		case cmd_restoreActivePlaylistLastPlayed: return guid_restoreBookmarkActivePlaylistLastPlayed;
 		case cmd_clearBookmarks: return guid_clearBookmarks;
+
+		case cmd_startRecording: return guid_startRecording;
+		case cmd_stopRecording: return guid_stopRecording;
+
 		default: uBugCheck(); // should never happen unless somebody called us with invalid parameters - bail
 		}
 	}
@@ -68,6 +80,10 @@ public:
 		case cmd_restore: p_out = "Restore Bookmark"; break;
 		case cmd_restoreActivePlaylistLastPlayed: p_out = "Restore last bookmark from the active playlist"; break;
 		case cmd_clearBookmarks: p_out = "Clear Bookmarks"; break;
+
+		case cmd_startRecording: p_out = "Start Recording"; break;
+		case cmd_stopRecording: p_out = "Stop Recording"; break;
+
 		default: uBugCheck(); // should never happen unless somebody called us with invalid parameters - bail
 		}
 	}
@@ -79,6 +95,10 @@ public:
 		case cmd_restore: p_out = "Restores the playback position from the bookmark selected by in the first element to be instantiated."; return true;
 		case cmd_restoreActivePlaylistLastPlayed: p_out = "Restores the last bookmark from the active playlist."; return true;
 		case cmd_clearBookmarks: p_out = "Removes all bookmarks"; return true;
+
+		case cmd_startRecording: p_out = "Start python script to record sound"; return true;
+		case cmd_stopRecording: p_out = "Stop python script to recourd sound"; return true;
+
 		default: uBugCheck(); // should never happen unless somebody called us with invalid parameters - bail
 		}
 	}
@@ -101,6 +121,14 @@ public:
 		case cmd_clearBookmarks:
 			p_flags = !bbookmarkHook_canClear();
 			break;
+
+		case cmd_startRecording:
+			p_flags = flag_defaulthidden | (glb::g_bmAuto.IsRecording(true, cfg_dst_rec_path.get()) ? flag_disabled : 0);
+			break;
+		case cmd_stopRecording:
+			p_flags = flag_defaulthidden | (glb::g_bmAuto.IsRecording(true, cfg_dst_rec_path.get()) ? 0 : flag_disabled);
+			break;
+
 		}
 		get_name(p_index, p_text);
 		return true;
@@ -142,6 +170,16 @@ public:
 			if (bbookmarkHook_canClear())
 				bbookmarkHook_clear();
 			break;
+
+		case cmd_startRecording:
+			if (cfg_dst_rec_path.get().get_length())
+				glb::g_bmAuto.StartRecording(glb::g_guiLists, true, cfg_dst_rec_path.get());
+			break;
+		case cmd_stopRecording:
+			if (cfg_dst_rec_path.get().get_length())
+				glb::g_bmAuto.StartRecording(glb::g_guiLists, false, cfg_dst_rec_path.get());
+			break;
+
 		default: uBugCheck();
 		}
 	}

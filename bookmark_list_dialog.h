@@ -576,6 +576,9 @@ namespace dlg {
 						ID_ADD_TO_QUEUE, ID_RESET_PLAYLIST, ID_RESET_COMMENT,
 						ID_DEL, ID_CLEAR = 100,
 						ID_ASSIGN_PLAYLIST, ID_ASSIGN_SINGLE_TO_PLAYLIST_ACTIVE_SEL, ID_ASSIGN_MULTI_TO_PLAYLIST_ACTIVE_SEL,
+
+						ID_REC_AUDIO_START = 150, ID_REC_AUDIO_STOP, ID_REC_AUDIO_BROWSE,
+
 						ID_COPY_BOOKMARK = 200, ID_CMD_COPY, ID_COPY_PATH, ID_CMD_OPEN_FOLDER, ID_SELECTALL, ID_SELECTNONE, ID_INVERTSEL, ID_MAKEPRIME,
 						ID_PAUSE_BOOKMARKS, ID_PREF_PAGE, ID_CMD_SEL_PROPERTIES,
 						ID_TRK_SCN_PLACE_AFTER, ID_TRK_SCN_PLACE_BEFORE
@@ -609,8 +612,45 @@ namespace dlg {
 						submenus_ids[2], "Assign m&ultiple bookmarks the active playlist and track selection");
 
 
+					UINT submenus_ids_REC[3] = {
+						ID_REC_AUDIO_START, ID_REC_AUDIO_STOP,
+						ID_REC_AUDIO_BROWSE
+					};
+
+					pfc::array_t<HMENU> submenus_REC; submenus_REC.resize(1);
+					pfc::array_t<MENUITEMINFO> submenu_infos_REC; submenu_infos_REC.resize(1);
+					for (size_t n = 0; n < 1; n++) {
+						submenus_REC[n] = CreatePopupMenu();
+						submenu_infos_REC[n] = { 0 };
+						submenu_infos_REC[n].cbSize = sizeof(MENUITEMINFO);
+						submenu_infos_REC[n].fMask = MIIM_SUBMENU | MIIM_STRING | MIIM_ID | MIIM_STATE;
+						submenu_infos_REC[n].hSubMenu = submenus_REC[n];
+						submenu_infos_REC[n].dwTypeData = _T("&Record...");
+						submenu_infos_REC[n].wID = submenus_ids_REC[n];
+						submenu_infos_REC[n].fState = !bupdatable || !bassignable ? MF_DISABLED | MF_GRAYED : 0;
+					}
+
+					bool is_recording = g_bmAuto.IsRecording(true, cfg_dst_rec_path.get() /*"E:\\mp"*/);
+					bool path_defined = cfg_dst_rec_path.get().get_length();
+
+					uAppendMenu(submenus_REC[0], MF_STRING | (is_recording || !path_defined ? MF_DISABLED | MF_GRAYED : 0),
+						submenus_ids_REC[0], "Start &recording");
+					AppendMenu(submenus_REC[0], MF_STRING, MF_SEPARATOR, 0);
+					uAppendMenu(submenus_REC[0], MF_STRING | (!is_recording || !path_defined ? MF_DISABLED | MF_GRAYED : 0),
+						submenus_ids_REC[1], "S&top recording");
+					AppendMenu(submenus_REC[0], MF_STRING, MF_SEPARATOR, 0);
+					uAppendMenu(submenus_REC[0], MF_STRING | (false/*!bupdatable || !bassignable_multi_sel*/ ? MF_DISABLED | MF_GRAYED : 0),
+						submenus_ids_REC[2], "Browse recordin&g");
+
 					menu.AppendMenu(MF_STRING | (!CListCtrlMarkDialog::canStore() ? MF_DISABLED | MF_GRAYED : 0), ID_STORE, L"&Add bookmark");
 					menu.AppendMenu(MF_STRING | (!bsinglesel ? MF_DISABLED | MF_GRAYED : 0), ID_RESTORE, L"R&estore\tENTER");
+
+					if (cfg_dst_rec_path.get().get_length()) {
+						menu.AppendMenu(MF_SEPARATOR);
+
+						InsertMenuItem(menu, submenus_ids_REC[0], true, &submenu_infos_REC[0]);
+					}
+
 					menu.AppendMenu(MF_SEPARATOR);
 					menu.AppendMenu(MF_STRING | (!bupdatable || !bresetable_time ? MF_DISABLED | MF_GRAYED : 0), ID_RESET_TIME, L"Reset &time");
 					if (cfg_display_ms.get()) {
@@ -689,6 +729,14 @@ namespace dlg {
 					[[fallthrough]];
 					case ID_ASSIGN_MULTI_TO_PLAYLIST_ACTIVE_SEL:
 					[[fallthrough]];
+
+					case ID_REC_AUDIO_START:
+					[[fallthrough]];
+					case ID_REC_AUDIO_STOP:
+					[[fallthrough]];
+					case ID_REC_AUDIO_BROWSE:
+					[[fallthrough]];
+
 					case ID_RESET_TIME:
 					[[fallthrough]];
 					case ID_RESET_TIME_MS:
@@ -797,6 +845,33 @@ namespace dlg {
 
 								g_store.SetItem(w, rec);
 								changed |= true;
+							}
+							else if (cmd == ID_REC_AUDIO_START || cmd == ID_REC_AUDIO_STOP || cmd == ID_REC_AUDIO_BROWSE) {
+
+								pfc::string8 path_script = cfg_dst_rec_path.get()/*"E:\\mp\\_script\\scrpt.py"*/;
+
+								if (!path_script.get_length()) {
+									//
+									return;
+									//
+								}
+
+								switch (cmd) {
+								case ID_REC_AUDIO_START:
+									g_bmAuto.StartRecording(g_guiLists, true, path_script);
+									break;
+								case ID_REC_AUDIO_STOP:
+									g_bmAuto.StartRecording(g_guiLists, false, path_script);
+									break;
+								case ID_REC_AUDIO_BROWSE: {
+									std::filesystem::path os_file = std::filesystem::u8path(path_script.c_str());
+									std::wstring wpath = os_file.parent_path().parent_path().wstring();
+									if (wpath.size()) {
+										ShellExecute(NULL, L"open", wpath.c_str(), NULL, NULL, SW_SHOWDEFAULT);
+									}
+									break;
+								}
+								}
 							}
 							else if (cmd == ID_RESET_COMMENT) {
 								rec.set_comment("");
