@@ -577,7 +577,8 @@ namespace dlg {
 						ID_DEL, ID_CLEAR = 100,
 						ID_ASSIGN_PLAYLIST, ID_ASSIGN_SINGLE_TO_PLAYLIST_ACTIVE_SEL, ID_ASSIGN_MULTI_TO_PLAYLIST_ACTIVE_SEL,
 						ID_COPY_BOOKMARK = 200, ID_CMD_COPY, ID_COPY_PATH, ID_CMD_OPEN_FOLDER, ID_SELECTALL, ID_SELECTNONE, ID_INVERTSEL, ID_MAKEPRIME,
-						ID_PAUSE_BOOKMARKS, ID_PREF_PAGE, ID_CMD_SEL_PROPERTIES
+						ID_PAUSE_BOOKMARKS, ID_PREF_PAGE, ID_CMD_SEL_PROPERTIES,
+						ID_TRK_SCN_PLACE_AFTER, ID_TRK_SCN_PLACE_BEFORE
 					};
 
 					UINT submenus_ids[3] = {
@@ -633,7 +634,20 @@ namespace dlg {
 						menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_CMD_OPEN_FOLDER, L"Open containing &folder");
 						menu.AppendMenu(MF_SEPARATOR);
 					}
-
+					//test track scene
+					GUID fall_guid_ctx = pfc::guid_null;
+					menu_helpers::name_to_guid_table menu_table;
+					bool btrk_scn_pbp = menu_table.search("Place Before Now Playing", 39, fall_guid_ctx);
+					bool btrk_scn_pap = menu_table.search("Place After Now Playing", 38, fall_guid_ctx);
+					if (btrk_scn_pbp) {
+						uAppendMenu(menu, MF_STRING, ID_TRK_SCN_PLACE_BEFORE, lbl_before);
+					}
+					if (btrk_scn_pap) {
+						uAppendMenu(menu, MF_STRING, ID_TRK_SCN_PLACE_AFTER, lbl_after);
+					}
+					if (btrk_scn_pbp || btrk_scn_pap) {
+						menu.AppendMenu(MF_SEPARATOR);
+					}
 					// Note: Ctrl+A handled automatically by CListControl, no need for us to catch it
 					menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_SELECTALL, L"&Select all\tCtrl+A");
 					menu.AppendMenu(MF_STRING | (!(bool)icount || !csel ? MF_DISABLED | MF_GRAYED : 0), ID_SELECTNONE, L"C&lear selection");
@@ -874,6 +888,10 @@ namespace dlg {
 					[[fallthrough]];
 					case ID_CMD_SEL_PROPERTIES:
 					[[fallthrough]];
+					case ID_TRK_SCN_PLACE_BEFORE:
+                    [[fallthrough]];
+                    case ID_TRK_SCN_PLACE_AFTER:
+                    [[fallthrough]];
 					case ID_CMD_COPY: {
 						GUID fall_guid_ctx = pfc::guid_null;
 						menu_helpers::name_to_guid_table menu_table;
@@ -886,7 +904,12 @@ namespace dlg {
 						else if (cmd == ID_CMD_COPY) {
 							bool bf = menu_table.search("Copy", 4, fall_guid_ctx);
 						}
-
+						else if (cmd == ID_TRK_SCN_PLACE_BEFORE) {
+							fall_guid_ctx = guid_contextAddBeforePlaying;
+						}
+						else if (cmd == ID_TRK_SCN_PLACE_AFTER) {
+							fall_guid_ctx = guid_contextAddAfterPlaying;
+						}
 						if (pfc::guid_equal(fall_guid_ctx, pfc::guid_null)) {
 							break; //EXIT
 						}
