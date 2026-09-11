@@ -444,8 +444,11 @@
     <ClInclude Include="bookmark_persistence.h" />
     <ClInclude Include="bookmark_preferences.h" />
     <ClInclude Include="context_menu.h" />
+    <ClInclude Include="error_manager.h" />
+    <ClInclude Include="exception.h" />
     <ClInclude Include="guids.h" />
     <ClInclude Include="IBookmark.h" />
+    <ClInclude Include="mycdialog.h" />
     <ClInclude Include="radio_filter_titleformat_hook.h" />
     <ClInclude Include="style_manager_cui.h" />
     <ClInclude Include="style_manager_dui.h" />
@@ -455,6 +458,7 @@
     <ClInclude Include="style_manager.h" />
     <ClInclude Include="utils.h" />
     <ClInclude Include="version.h" />
+    <ClInclude Include="yes_no_dialog.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="foo_vbookmark.rc" />

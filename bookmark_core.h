@@ -11,8 +11,11 @@
 namespace dlg {
 
 	class CListControlBookmark;
-
+	class CBookmarkPreferences;
 }
+
+inline extern UINT UMSG_NEW_TRACK = WM_USER + 1001;
+inline extern UINT UMSG_PAUSED = WM_USER + 1002;
 
 namespace glb {
 

@@ -6,6 +6,11 @@
 #define IDI_SCROLL                      109
 #define IDD_BOOKMARK_PREFERENCES        148
 #define IDD_BOOKMARK_DIALOG             149
+#define IDD_DIALOG_CONF                 150
+#define IDD_DIALOG_CONF_0               151
+#define IDD_DIALOG_CONF_1               152
+#define IDD_DIALOG_CONF_2               153
+#define IDC_TAB_CFG                     1001
 #define IDC_VERBOSE                     1002
 #define IDC_MONITOR                     1003
 #define IDC_AUTOSAVE_EXIT               1016
@@ -49,6 +54,7 @@
 #define IDC_1CLK_EDIT_MODE              1058
 #define IDC_PLAY_ON_INIT_FLAG           1059
 #define IDC_RQ_ON_INIT_FLAG             1061
+#define IDC_STATIC_INFO                 1073
 
 // Next default values for new objects
 // 
@@ -56,7 +62,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        113
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1070
-#define _APS_NEXT_SYMED_VALUE           101
+#define _APS_NEXT_CONTROL_VALUE         1074
+#define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif
