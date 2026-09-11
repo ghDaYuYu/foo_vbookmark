@@ -34,6 +34,4 @@ namespace glb {
 		return g_primaryGuiList;
 	}
 
-	inline constexpr UINT UMSG_NEW_TRACK = WM_USER + 1001;
-	inline constexpr UINT UMSG_PAUSED = WM_USER + 1002;
 }

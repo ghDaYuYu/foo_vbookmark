@@ -1,6 +1,7 @@
 #include "bookmark_core.h"
 #include "bookmark_worker.h"
 #include "bookmark_list_control.h"
+#include "bookmark_store.h"
 
 using namespace glb;
 
@@ -69,7 +70,6 @@ namespace {
 					g_store.AddItem(g_bmAuto.getDummy());
 				}
 			}
-
 			g_store.Write(false);
 		}
 	};

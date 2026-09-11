@@ -13,15 +13,11 @@ public:
 
 	const std::vector<bookmark_t>& GetMasterList() {
 
-		std::lock_guard<std::mutex> guard(m_store_lock);
-
 		return m_masterList;
 	}
 
 	void SetMasterList(std::vector<bookmark_t> v) {
 		//eg. reordering
-
-		std::lock_guard<std::mutex> guard(m_store_lock);
 
 		m_is_dirty = true;
 		m_masterList = std::move(v);
@@ -29,16 +25,17 @@ public:
 
 	size_t Size() {
 
-		std::lock_guard<std::mutex> guard(m_store_lock);
+		if (m_nofresh) {
+			return 0;
+		}
 
 		return m_masterList.size();
 	};
 
-	bool Initialize() { 
+	bool Initialize() {
 
 		m_is_dirty = false;
-		m_persist.readDataFileJSON(m_masterList); /*todo*/return true;
-
+		return m_persist.readDataFileJSON(m_masterList);
 	}
 
 	const bookmark_t _getItem(size_t pos) {
@@ -48,8 +45,6 @@ public:
 	}
 	const bookmark_t GetItem(size_t pos) {
 
-		std::lock_guard<std::mutex> guard(m_store_lock);
-
 		return _getItem(pos);
 	}
 
@@ -57,8 +52,6 @@ public:
 		m_masterList[pos] = rec;
 	}
 	void SetItem(size_t pos, bookmark_t rec) {
-
-		std::lock_guard<std::mutex> guard(m_store_lock);
 
 		m_is_dirty = true;
 		_setItem(pos, rec);
@@ -69,7 +62,9 @@ public:
 	}
 	void AddItem(const bookmark_t rec) {
 
-		std::lock_guard<std::mutex> guard(m_store_lock);
+		if (m_nofresh) {
+			return;
+		}
 
 		m_is_dirty = true;
 		_addItem(rec);
@@ -80,23 +75,19 @@ public:
 	}
 	void Reorder(const pfc::array_t<t_size> p_order, t_size p_count) {
 
-		std::lock_guard<std::mutex> guard(m_store_lock);
-
 		m_is_dirty = true;
 		_reorder(p_order, p_count);
 	}
 	void _write() {
 
-		auto write_callback = [this](std::lock_guard<std::mutex>* p_guard) {
-
-			std::lock_guard<std::mutex>* guard = p_guard;
+		auto write_callback = [this]() {
 
 			m_is_dirty = false;
 		};
 
 		std::lock_guard<std::mutex> guard(m_store_lock);
 
-		m_persist.writeDataFile(m_masterList, write_callback, &guard);
+		m_persist.writeDataFile(m_masterList, write_callback);
 
 		return;
 	}
@@ -104,7 +95,10 @@ public:
 	void Write(bool thread_pool = true) {
 
 		{
-			std::lock_guard<std::mutex> guard(m_store_lock);
+
+			if (m_nofresh) {
+				return;
+			}
 
 			if (!m_is_dirty) {
 				FB2K_console_print_v("Saving... nothing to do.");
@@ -132,8 +126,6 @@ public:
 			auto work = [this] {
 				try {
 
-					std::lock_guard<std::mutex> guard(m_store_lock);
-
 					this->m_persist.writeDataFileJSON(this->m_masterList);
 					this->m_is_dirty = false;
 					FB2K_console_print_v("Saved.");
@@ -152,8 +144,6 @@ public:
 	}
 	void Remove(const bit_array_bittable p_mask) {
 
-		std::lock_guard<std::mutex> guard(m_store_lock);
-
 		m_is_dirty = true;
 		_remove(p_mask);
 	}
@@ -161,15 +151,21 @@ public:
 	void _clear() { m_masterList.clear(); }
 	void Clear() {
 
-		std::lock_guard<std::mutex> guard(m_store_lock);
-
 		m_is_dirty = true;
 		_clear();
+	}
+
+	inline static void set_no_refresh(bool st) {
+		m_nofresh = st;
+	}
+	inline static bool get_no_refresh() {
+		return m_nofresh;
 	}
 
 private:
 
 	inline static std::mutex m_store_lock;
+	inline static bool m_nofresh = false;
 
 	std::vector<bookmark_t> m_masterList;
 	bookmark_persistence m_persist;

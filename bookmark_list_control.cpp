@@ -45,6 +45,16 @@ namespace dlg {
 
 	pfc::string8 ILOD_BookmarkSource::listGetSubItemText(ctx_t ctx, size_t item, size_t subItem) {
 
+		try {
+			if (bookmark_store::get_no_refresh()) {
+				return "";
+			}
+
+		}
+		catch (...) {
+			return "";
+		}
+
 		CListControlBookmark* plc = (CListControlBookmark*)(ctx);
 
 		if (plc->GetSortOrder()) {
