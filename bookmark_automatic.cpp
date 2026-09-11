@@ -305,8 +305,14 @@ void bookmark_automatic::updateDummy() {
 				pfc::string8 title;
 				titleformat_object::ptr tfo_fdn;
 				static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(tfo_fdn, "%title%");
+
 				b_done = playback_control::get()->playback_format_title(NULL, title, tfo_fdn, NULL, playback_control::display_level_all);
-				FB2K_console_print_v("Track check-in ", title);
+				if (title.startsWith("<?xml")) {
+					FB2K_console_print_v("Track check-in ", "(xml)");
+				}
+				else {
+					FB2K_console_print_v("Track check-in ", title);
+				}
 
 				bool piped = filters::is_dyna_double_pipe(dummy.get_fdn());
 				bool custom = false;
@@ -325,10 +331,15 @@ void bookmark_automatic::updateDummy() {
 					else {
 						custom = true;
 						if (title.get_length()) {
-							dummy.set_fdn(PFC_string_formatter() << artist << "~" << title);
+							dummy.set_fdn(PFC_string_formatter() << title << "~" << artist);
 						}
 						else {
-							FB2K_console_print_v("Track check-in ", dummy.get_fdn(), ", skipping artist ", artist);;
+							if (dummy.get_fdn().startsWith("<?xml")) {
+								FB2K_console_print_v("Track check-in ", "(xml)");
+							}
+							else {
+								FB2K_console_print_v("Track check-in ", dummy.get_fdn(), ", skipping artist ", artist);;
+							}
 						}
 					}
 				}
@@ -344,7 +355,6 @@ void bookmark_automatic::updateDummy() {
 					dummy.set_fdn(PFC_string_formatter() << dummy.get_fdn() << "~" << (album.equals("?") ? "" : album));
 				}
 				else {
-					FB2K_console_print_v("Track check-in ", dummy.get_fdn(), ", skipping album ", album);;
 				}
 
 				pfc::string8 year;
@@ -354,7 +364,6 @@ void bookmark_automatic::updateDummy() {
 					dummy.set_fdn(PFC_string_formatter() << dummy.get_fdn() << "~" << (year.equals("?") ? "" : year) << "~vbm");
 				}
 				else {
-					FB2K_console_print_v("Track check-in ", dummy.get_fdn(), ", skipping year ", year);
 				}
 			}
 			//fb2k provides hook for new songs
@@ -370,7 +379,11 @@ void bookmark_automatic::updateDummy() {
 			fltr::radio_nfo_type rnt;
 			fltr::get_radio_nfo(dummy.get_fdn(), rnt);
 
-			size_t pri_pos = fltr::parse_radio_info(rnt, &ra_hook, songDesc, cfg_desc_format.get_value());
+			size_t pri_pos = fltr::parse_radio_info(rnt/*songDesc*/, &ra_hook, songDesc, cfg_desc_format.get_value());
+
+			if (cfg_autosave_radio_comment.get() && rnt.xml_station.get_length()) {
+				dummy.set_comment(rnt.xml_station);
+			}
 			//
 		}
 		else {
@@ -675,6 +688,8 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 			pfc::string8 buff;
 			radio_signa_len = fltr::parse_radio_info(rnt, &ra_hook, buff, cfg_desc_format.get_value().c_str());
 			dummy.set_desc(buff);
+			//xml
+			dummy.set_fdn(rnt.radio_info);
 		}
 
 		size_t dup_ndx = SIZE_MAX;
@@ -720,6 +735,9 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 					if (!dummy.need_playlist && (brev_time && brev_path_guid_subsong)) {
 						FB2K_console_print_v("Skipping duplicated bookmark: ", dummy.path);
 					}
+
+					bool bexpent_retries = dummy.need_playlist && dummy.need_loc_retries > LOC_RETRIES;
+
 					if (!bexpent_retries) {
 						FB2K_console_print_v("Nothing to do.");
 						// nothing to do
@@ -736,7 +754,6 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 		}
 		else {
 
-			dummy.set_fdn(pfc::string8());
 			dummy.need_playlist = false;
 
 			g_store.AddItem(std::move(bookmark_t(dummy)));
@@ -746,7 +763,7 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 		}
 
 		//UI update
-		if (!bshooting_down) {
+		if (!bshutting_down) {
 			bool bscroll_list = cfg_autosave_focus_newtrack.get();
 			refresh_ui(bscroll_list, bscroll_list, guiLists);
 		}
