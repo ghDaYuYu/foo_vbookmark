@@ -1,5 +1,15 @@
 #include "stdafx.h"
 
+#include <fcntl.h> //_O_CREAT
+#include <io.h> //_write _close
+#include <errno.h>
+#include <filesystem>
+
+const pfc::string8 MARK_RECORDING_NAME = "recording.txt";
+const pfc::string8 MARK_STOP_RECORDING_NAME = "stop.txt";
+
+namespace fs = std::filesystem;
+
 #include "SDK/playback_control.h"
 #include "SDK/playlist.h"
 
@@ -10,6 +20,7 @@
 #include "bookmark_preferences.h"
 
 #include "utils.h"
+
 #include "radio_filter_titleformat_hook.h"
 
 using namespace glb;
@@ -431,7 +442,7 @@ void bookmark_automatic::updateDummy() {
 		dummy.path = songPath;
 
 		if (!dummy.isRadio()) {
-			dummy.set_desc(songDesc);
+			dummy.desc = songDesc;
 		}
 		else {
 
@@ -451,6 +462,7 @@ void bookmark_automatic::updateDummy() {
 			dummy.guid_playlist = guid_playing_playlist;
 			dummy.need_playlist = !playlist_available;
 		}
+		gimme_date(dummy);
 
 		//dyna
 		pfc::string8 station_name;
@@ -496,6 +508,154 @@ bool bookmark_automatic::CheckAutoPlaylistFilter() {
 }
 
 bool bookmark_automatic::CheckRadioFilter(pfc::string8 p_song_desc, const pfc::string8 p_csvfilters, const pfc::string8 p_tf_filter) {
+void procpython(HWND hwnd, pfc::string8 rec_info_params, pfc::string8 path) {
+
+	fs::path os_python_script = fs::u8path(path.c_str());
+
+	std::wstring wparams = pfc::wideFromUTF8(rec_info_params);
+	
+	std::wstring wdest_path = os_python_script.parent_path().parent_path().wstring();
+	std::wstring script_path = pfc::wideFromUTF8(path);
+
+	std::wstring python_path = L"python";
+	std::wstring cmd = python_path + L" " + script_path + L" " + wparams + L" -p \"" + wdest_path + L"\"";
+	FB2K_console_print_e("record calling ", cmd.c_str());
+
+	STARTUPINFOW si{}; si.cb = sizeof(si);
+	PROCESS_INFORMATION pi{};
+
+	if (CreateProcessW(NULL, &cmd[0], NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
+	}
+	else {
+		DWORD err = GetLastError(); 
+	}
+}
+
+bool CheckInRecording(bool start, pfc::string8 rec_info_params, pfc::string8 path) {
+
+	fs::path os_python_script = fs::u8path(path.c_str());
+	fs::path os_parent = os_python_script.parent_path().parent_path();
+	fs::path os_status_file;
+
+	if (!start) {
+		os_status_file = fs::u8path((PFC_string_formatter() << os_parent.c_str() << "\\" << MARK_RECORDING_NAME).c_str());
+		try {
+			if (fs::exists(os_status_file)) {
+				fs::remove(os_status_file);
+			}
+		}
+		catch (...) {
+			//..
+		}
+	}
+
+	if (start) {
+		os_status_file = fs::u8path((PFC_string_formatter() << os_parent.c_str() << "\\" << MARK_RECORDING_NAME).c_str());
+	}
+	else {
+		os_status_file = fs::u8path((PFC_string_formatter() << os_parent.c_str() << "\\" << MARK_STOP_RECORDING_NAME).c_str());
+	}
+
+	auto jf = _wopen(os_status_file.wstring().c_str(), _O_CREAT | _O_TRUNC | _O_RDWR | _O_TEXT, _S_IWRITE);
+
+	if (jf != -1) {
+
+		pfc::string8 fcontent = PFC_string_formatter() << rec_info_params;
+		int w = _write(jf, fcontent.get_ptr(), static_cast<unsigned int>(fcontent.get_length()));
+		bool bok = ((w || !fcontent.get_length()) && !_close(jf));
+		return bok;
+	}
+	else {
+		return false;
+	}
+}
+
+bool bookmark_automatic::IsRecording(bool start, pfc::string8 path) {
+
+	fs::path os_file = fs::u8path(path.c_str());
+	fs::path os_parent = os_file.parent_path().parent_path();
+
+	if (start) {
+		os_file = fs::u8path((PFC_string_formatter() << os_parent.c_str() << "\\" << MARK_RECORDING_NAME).c_str());
+	}
+	else {
+		os_file = fs::u8path((PFC_string_formatter() << os_parent.c_str() << "\\" << MARK_STOP_RECORDING_NAME).c_str());
+	}
+
+	try {
+
+		return std::filesystem::exists(os_file);
+	}
+	catch (const std::filesystem::filesystem_error& /*e*/)
+	{
+		return false;
+	}
+}
+
+void bookmark_automatic::StartRecording(std::list< dlg::CListControlBookmark*> guiLists, bool start, pfc::string8 path) {
+
+	if (!dummy.get_name(true).get_length()) {
+		//
+		return;
+		//
+	}
+
+	pfc::string8 rec_info_tf = "[--artist \"%artist%\"][ --title \"%title%\" ][ --album \"%album%\" ][--date \"%date%\"]";
+	pfc::string8 rec_info_params;
+
+	if (dummy.isRadio()) {
+
+		pfc::string8 songDesc;
+		radio_filter_titleformat_hook ra_hook;
+		std::vector<pfc::string8>vfilters;
+
+		fltr::get_filters(cfg_txt_filter.get_value(), vfilters);
+		ra_hook.setData(dummy.get_fdn(), vfilters);
+
+		fltr::radio_nfo_type rnt;
+		fltr::get_radio_nfo(dummy.get_fdn(), rnt);
+
+		size_t pri_pos = fltr::parse_radio_info(rnt, &ra_hook, rec_info_params, rec_info_tf);
+
+		if (pri_pos != SIZE_MAX) {
+			//..
+		}
+	}
+	else {
+		metadb_handle_ptr mhp;
+		playback_control_v3::get()->get_now_playing(mhp);
+
+		titleformat_object::ptr tfo;
+		static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(tfo, rec_info_tf);
+		mhp->format_title(NULL, rec_info_params, tfo, NULL);
+	}
+
+
+	if (start) {
+
+		CheckInRecording(true, rec_info_params, path);
+
+		auto work = [this, guiLists, rec_info_params, path] {
+			try {
+				dlg::CListControlBookmark* lc = *(guiLists.begin());
+				procpython(lc->m_hWnd, rec_info_params, path);
+			}
+			catch (std::exception const& /*e*/) {
+				//..
+			}
+		};
+		//todo
+		cmdThFile.add(work);
+	}
+	else {
+		//stop
+		CheckInRecording(false, rec_info_params, path);
+	}
+}
+
+bool bookmark_automatic::CheckRadioFilter(pfc::string8 song_desc, const pfc::string8 p_csvfilters, const pfc::string8 p_tf_filter) {
 
 	bool bres = true;
 
@@ -695,7 +855,7 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 				bradio_same_desc_any_time &= rit->get_desc().subString(0, radio_signa_len).equals(dummy.get_desc().subString(0, radio_signa_len));
 			}
 			else {
-				bradio_same_desc_any_time &= dummy.isRadio() && brev_path_guid_subsong && rit->get_desc().equals(dummy.get_desc());
+				bradio_same_desc_any_time &= dummy.isRadio() && brev_path_guid_subsong && rit->desc.equals(dummy.desc);
 			}
 			//
 
@@ -719,24 +879,18 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 					if (!dummy.need_playlist && (brev_time && brev_path_guid_subsong)) {
 						FB2K_console_print_v("Skipping duplicated bookmark: ", dummy.path);
 					}
-					if (!bexpent_retries) {
-						FB2K_console_print_v("Nothing to do.");
-						// nothing to do
-						return false;
-					}
+					FB2K_console_print_v("Nothing to do.");
+					// nothing to do
+					return false;
 				}
 			}
 		}
 
-		bool bshutting_down = core_api::is_shutting_down();
-		if (bshutting_down && masterList.size()) {
-			FB2K_console_print_v("Shutting down.");
+		bool bshooting_down = core_api::is_shutting_down();
+		if (bshooting_down && masterList.size()) {
 			//..
 		}
 		else {
-
-			dummy.set_fdn(pfc::string8());
-			dummy.need_playlist = false;
 
 			g_store.AddItem(std::move(bookmark_t(dummy)));
 			g_store.Write();
@@ -749,9 +903,6 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 			bool bscroll_list = cfg_autosave_focus_newtrack.get();
 			refresh_ui(bscroll_list, bscroll_list, guiLists);
 		}
-	}
-	else {
-		FB2K_console_print_v("Auto-Bookmarking is paused");
 	}
 	return g_store.Size() != old_size;
 }
@@ -780,7 +931,7 @@ bool bookmark_automatic::isRestoredDummy(const bookmark_t& bm) {
 bool bookmark_automatic::isRestoredRadioDummy(const bookmark_t& bm) {
 	if (!bm.isRadio()) return false;
 	if (pfc::guid_equal(restored_dummy.guid_playlist, bm.guid_playlist) &&
-		(restored_dummy.path.equals(bm.path)) && restored_dummy.get_desc().equals(bm.get_desc())) {
+		(restored_dummy.path.equals(bm.path)) && restored_dummy.desc.equals(bm.desc)) {
 		return true;
 	}
 	return false;
