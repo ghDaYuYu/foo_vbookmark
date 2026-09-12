@@ -898,6 +898,19 @@ INT_PTR WINAPI CBookmarkPreferences::on_config_1_dialog_message(HWND wnd, UINT m
 				OnChanged();
 				return FALSE;
 			}
+			else {
+				if (!setting_dlg && HIWORD(wp) == EN_UPDATE) {
+					//save_config_0_dialog(wnd, true/*, false*/);
+					OnChanged();
+					return FALSE;
+				}
+				else{
+					if (HIWORD(wp) == BN_CLICKED) {
+						OnChanged();
+						return FALSE;
+					}
+				}
+			}
 			return FALSE;
 		}
 	}
