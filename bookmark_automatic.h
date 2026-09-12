@@ -41,10 +41,6 @@ public:
 		dummy.set_dyna(dummy.isRadio() && state);
 	}
 
-	void setDynaInfo(const file_info& p_info) {
-		dummy.fii = p_info;
-	}
-
 	bool checkDummyIsRadio() {
 		return (bool)dummy.isRadio();
 	}
@@ -60,12 +56,12 @@ public:
 	bool CheckRadioFilter(pfc::string8 p_song_desc, const pfc::string8 p_csvfilters, const pfc::string8 p_tf_filter);
 
 	void updateDummyTime();
-	void updateDummy();
+	void updateDummy(const metadb_handle_ptr p_pmh_now_playing);
 
 	bool IsRecording(bool start, pfc::string8 path/*, pfc::string8 artist, pfc::string8 title*/);
 	void StartRecording(std::list< dlg::CListControlBookmark*> guiLists, bool start, pfc::string8 path);
 
-	bool upgradeDummy(std::list< dlg::CListControlBookmark*> guiList);
+	bool upgradeDummy(const metadb_handle_ptr pmh_now_playing, std::list< dlg::CListControlBookmark*> guiList);
 
 	void ResetRestoredDummy();
 	void ResetRestoredDummyTime();
@@ -122,25 +118,3 @@ private:
 
 	std::mutex lock_update_time;
 };
-
-#pragma warning( push )
-#pragma warning( disable:4996 )
-
-inline void gimme_date(bookmark_t& out) {
-
-	pfc::string8 date;
-	pfc::string8 runtime_date;
-
-	auto t = std::time(nullptr);
-	auto tm = *std::localtime(&t);
-	auto sctime = asctime(&tm);
-
-	date.set_string(sctime);
-	date.truncate_last_char();
-
-		char buffer[DATE_BUFFER_SIZE];
-		std::strftime(buffer, DATE_BUFFER_SIZE, cfg_date_format.get(), &tm);
-		out.runtime_date = buffer;
-		out.date = date;
-}
-#pragma warning( pop )

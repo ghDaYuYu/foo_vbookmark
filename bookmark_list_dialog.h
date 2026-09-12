@@ -217,20 +217,26 @@ namespace dlg {
 
 		static void UpdateUINewBookmarks() {
 
+			// UI
 			std::lock_guard<std::mutex> ui_guard(m_mx_UI_Add_Bookmark_Refresh);
 
-			CListCtrlMarkDialog::CancelUIListEdits();
+			fb2k::inMainThread([]() {
 
-			for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
-				size_t item = (std::max)(0, (int)g_store.Size() - 1);
-				if ((*it)->GetSortOrder()) {
-					item = 0;
+				CListCtrlMarkDialog::CancelUIListEdits();
+
+				for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
+					size_t item = (std::max)(0, (int)g_store.Size() - 1);
+					if ((*it)->GetSortOrder()) {
+						item = 0;
+					}
+					(*it)->SelectNone();
+					(*it)->OnItemsInserted(item, 1, true);
+					(*it)->EnsureItemVisible(item, false);
+					(*it)->SetFocusItem(item);
 				}
-				(*it)->SelectNone();
-				(*it)->OnItemsInserted(item, 1, true);
-				(*it)->EnsureItemVisible(item, false);
-				(*it)->SetFocusItem(item);
-			}
+
+				});
+
 		}
 
 		//context menu and toolbar
@@ -279,9 +285,15 @@ namespace dlg {
 
 		static void addBookmark() {
 
+			metadb_handle_ptr pmh_now_playing;
+			if (core_api::is_main_thread()) {
+				playback_control::get()->get_now_playing(pmh_now_playing);
+			}
+
 			bookmark_worker bmWorker;
 			bookmark_t bm;
-			g_bmAuto.updateDummy();
+
+			g_bmAuto.updateDummy(pmh_now_playing);
 			bm = g_bmAuto.getDummy();
 
 			bool bplaying = playback_control::get()->is_playing();
@@ -302,7 +314,7 @@ namespace dlg {
 			});
 
 			ThreadUtils::cmdThread cmd;
-			cmd.add([pos, add_bookmark_callback] {
+			cmd.add([pmh_now_playing, pos, add_bookmark_callback] {
 				bookmark_t tbm;
 				size_t counter = 0;
 				do {
@@ -311,7 +323,7 @@ namespace dlg {
 						Sleep(100);
 					}
 
-					g_bmAuto.updateDummy();
+					g_bmAuto.updateDummy(pmh_now_playing);
 
 					tbm = g_bmAuto.getDummy();
 				} while (!tbm.playlist.get_length() && counter < 4);
@@ -329,16 +341,6 @@ namespace dlg {
 			}
 
 			g_store.Write();
-		}
-
-		static void CancelUIListEdits() {
-
-			for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
-
-				if ((*it)->TableEdit_IsActive()) {
-					(*it)->TableEdit_Abort(false);
-				}
-			}
 		}
 
 		static bool canStore() {
@@ -644,6 +646,8 @@ namespace dlg {
 
 					menu.AppendMenu(MF_STRING | (!CListCtrlMarkDialog::canStore() ? MF_DISABLED | MF_GRAYED : 0), ID_STORE, L"&Add bookmark");
 					menu.AppendMenu(MF_STRING | (!bsinglesel ? MF_DISABLED | MF_GRAYED : 0), ID_RESTORE, L"R&estore\tENTER");
+					menu.AppendMenu(MF_SEPARATOR);
+					menu.AppendMenu(MF_STRING | (!bupdatable || !(bool)csel ? MF_DISABLED | MF_GRAYED : 0), ID_DEL, L"Remo&ve\tDel");
 
 					if (cfg_dst_rec_path.get().get_length()) {
 						menu.AppendMenu(MF_SEPARATOR);
@@ -663,8 +667,6 @@ namespace dlg {
 
 					InsertMenuItem(menu, submenus_ids[0], true, &submenu_infos[0]);
 
-					menu.AppendMenu(MF_SEPARATOR);
-					menu.AppendMenu(MF_STRING | (!bupdatable || !(bool)csel ? MF_DISABLED | MF_GRAYED : 0), ID_DEL, L"Remo&ve\tDel");
 					menu.AppendMenu(MF_SEPARATOR);
 
 					if (bsinglesel) {
