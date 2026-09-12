@@ -16,7 +16,7 @@ namespace {
 
 		if (p_reason == play_control::stop_reason_shutting_down) {
 			if (cfg_autosave_on_quit.get()) {
-				g_bmAuto.updateDummy();
+				g_bmAuto.updateDummy(nullptr);
 			}
 		}
 		else {
@@ -27,7 +27,7 @@ namespace {
 				g_bmAuto.ResetRestoredDummy();
 			}
 			g_bmAuto.resetDummyAll();
-			g_bmAuto.updateDummy();
+			g_bmAuto.updateDummy(nullptr);
 		}
 	}
 
@@ -57,7 +57,7 @@ namespace {
 			g_bmAuto.resetDummyAll();
 		}
 
-		g_bmAuto.updateDummy();
+		g_bmAuto.updateDummy(nullptr);
 		//todo: remove m_updating from updateDummy()
 		g_bmAuto.Reset_Updating();
 

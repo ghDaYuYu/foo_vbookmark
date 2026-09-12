@@ -625,7 +625,7 @@ void CBookmarkPreferences::save_config_0_dialog(HWND wnd, bool refresh) {
 	uiToCfg(wnd, bab_as_radio_newtrack);
 
 	if (bab_as_newtrack.cfg->get()) {
-		g_bmAuto.updateDummy();
+		g_bmAuto.updateDummy(nullptr);
 	}
 
 	int ui_fval = 0;
@@ -670,7 +670,7 @@ void CBookmarkPreferences::save_config_1_dialog(HWND wnd, bool dlgbind) {
 	uiToCfg(wnd, bab_as_filter_newtrack);
 
 	if (bab_as_newtrack.cfg->get()) {
-		g_bmAuto.updateDummy();
+		g_bmAuto.updateDummy(nullptr);
 	}
 
 	uiToCfg(wnd, eat_txt_filter);

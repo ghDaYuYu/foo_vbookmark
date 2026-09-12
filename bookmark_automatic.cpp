@@ -106,7 +106,7 @@ void bookmark_automatic::updateDummyTime() {
 					//fix empty playlist manually bookmarking before delay expires
 					if (dummy.need_playlist) {
 						//todo: remove m_updating from updateDummy()
-						updateDummy();
+						updateDummy(nullptr);
 						if (bcan_autosave_newtrack) {
 							m_updating = true;
 						}
@@ -132,8 +132,7 @@ void bookmark_automatic::updateDummyTime() {
 
 				if (b_data_srv_available && dummy.need_playlist) {
 
-					updateDummy();
-
+					updateDummy(nullptr);
 					if (is_cfg_LapseEnabled()) {
 
 						if (m_updatePlaylistLapseStart != DBL_MAX) {
@@ -142,7 +141,7 @@ void bookmark_automatic::updateDummyTime() {
 					}
 				}
 
-				bool bres = upgradeDummy(g_guiLists);
+				bool bres = upgradeDummy(nullptr, g_guiLists);
 				m_updatePlaylistLapseStart = DBL_MAX;
 				m_updating = dummy.need_playlist = false;
 
@@ -181,7 +180,7 @@ void bookmark_automatic::updateDummyTime() {
 					}
 
 					// AUTO - CREATE
-					bool bres = upgradeDummy(g_guiLists);
+					bool bres = upgradeDummy(nullptr, g_guiLists);
 					if (!dummy.need_playlist || bexpent_retries) {
 						m_updatePlaylistLapseStart = DBL_MAX;
 						m_updating = dummy.need_playlist = false;
@@ -204,9 +203,18 @@ void bookmark_automatic::updateDummyTime() {
             }
 		}
 
-		//req. for no delays, paused bm, auto-create on_exit...
-		if (dummy.need_playlist) {
-			updateDummy();
+		// no delays, paused bookmarking ...
+
+		if (cfg_autosave_on_quit.get()) {
+			if (dummy.need_playlist) {
+				updateDummy(nullptr);
+			}
+		}
+		else {
+			//fix empty playlist, still need it for manual bookmarks
+			if (dummy.need_playlist) {
+				updateDummy(nullptr);
+			}
 		}
 
 		m_updating = dummy.need_playlist = false;
@@ -263,12 +271,18 @@ bool bookmark_automatic::fetchHelloRadioStationName(pfc::string8& out) {
 }
 
 //Full update
-void bookmark_automatic::updateDummy() {
+void bookmark_automatic::updateDummy(const metadb_handle_ptr p_pmh_now_playing/*bool threaded*/) {
 
 	metadb_handle_ptr dbHandle_item;
-	auto playback_control_ptr = playback_control::get();
 
-	if (playback_control_ptr->get_now_playing(dbHandle_item)) {
+	if (core_api::is_main_thread()) {
+		playback_control::get()->get_now_playing(dbHandle_item);
+	}
+	else {
+		dbHandle_item = p_pmh_now_playing;
+	}
+
+	if (dbHandle_item.get_ptr()) {
 
 		bool b_done = false;
 
@@ -285,19 +299,15 @@ void bookmark_automatic::updateDummy() {
 
 				//station
 				pfc::string8 station;
-				metadb_handle_ptr mhp;
 
-				if (playback_control::get()->get_now_playing(mhp)) {
+				//Station
+				file_info_impl fi;
+				dbHandle_item->get_info(fi);
 
-					//Station
-
-					file_info_impl fi;
-					mhp->get_info(fi);
-					size_t pos = fi.meta_find("title");
-					if (pos != SIZE_MAX) {
-						station = fi.meta_get("title",0);
-						station = filters::autoFixEncoding(station.c_str()).c_str();
-					}
+				size_t pos = fi.meta_find("title");
+				if (pos != SIZE_MAX) {
+					station = fi.meta_get("title", 0);
+					station = filters::autoFixEncoding(station.c_str()).c_str();
 				}
 
 				bool is_scoop = station.toLower().has_prefix("scoop");
@@ -306,7 +316,13 @@ void bookmark_automatic::updateDummy() {
 				titleformat_object::ptr tfo_fdn;
 				static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(tfo_fdn, "%title%");
 
-				b_done = playback_control::get()->playback_format_title(NULL, title, tfo_fdn, NULL, playback_control::display_level_all);
+				if (core_api::is_main_thread()) {
+					b_done = playback_control::get()->playback_format_title(NULL, title, tfo_fdn, NULL, playback_control::display_level_all);
+				}
+				else {
+					b_done = dbHandle_item->format_title(NULL, title, tfo_fdn, NULL);
+				}
+
 				if (title.startsWith("<?xml")) {
 					FB2K_console_print_v("Track check-in ", "(xml)");
 				}
@@ -319,12 +335,18 @@ void bookmark_automatic::updateDummy() {
 
 				pfc::string8 artist;
 				static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(tfo_fdn, "%artist%");
-				b_done = playback_control::get()->playback_format_title(NULL, artist, tfo_fdn, NULL, playback_control::display_level_all);
+
+				if (core_api::is_main_thread()) {
+					b_done = playback_control::get()->playback_format_title(NULL, artist, tfo_fdn, NULL, playback_control::display_level_all);
+				}
+				else {
+					b_done = dbHandle_item->format_title(NULL, artist, tfo_fdn, NULL);
+				}
 
 				if (is_scoop) { pfc::swap_t(artist, title); }
 
 				if (!artist.equals("?")) {
-					
+
 					if (piped) {
 						dummy.set_fdn(PFC_string_formatter() << title << " - " << artist);
 					}
@@ -349,7 +371,13 @@ void bookmark_automatic::updateDummy() {
 
 				pfc::string8 album;
 				static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(tfo_fdn, "%album%");
-				b_done = playback_control::get()->playback_format_title(NULL, album, tfo_fdn, NULL, playback_control::display_level_all);
+
+				if (core_api::is_main_thread()) {
+					b_done = playback_control::get()->playback_format_title(NULL, album, tfo_fdn, NULL, playback_control::display_level_all);
+				}
+				else {
+					b_done = dbHandle_item->format_title(NULL, album, tfo_fdn, NULL);
+				}
 
 				if (custom) {
 					dummy.set_fdn(PFC_string_formatter() << dummy.get_fdn() << "~" << (album.equals("?") ? "" : album));
@@ -359,7 +387,14 @@ void bookmark_automatic::updateDummy() {
 
 				pfc::string8 year;
 				static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(tfo_fdn, "%year%");
-				b_done = playback_control::get()->playback_format_title(NULL, year, tfo_fdn, NULL, playback_control::display_level_all);
+
+				if (core_api::is_main_thread()) {
+					b_done = playback_control::get()->playback_format_title(NULL, year, tfo_fdn, NULL, playback_control::display_level_all);
+				}
+				else {
+					b_done = dbHandle_item->format_title(NULL, year, tfo_fdn, NULL);
+				}
+
 				if (custom) {
 					dummy.set_fdn(PFC_string_formatter() << dummy.get_fdn() << "~" << (year.equals("?") ? "" : year) << "~vbm");
 				}
@@ -367,7 +402,13 @@ void bookmark_automatic::updateDummy() {
 				}
 			}
 			//fb2k provides hook for new songs
-			b_done = playback_control::get()->playback_format_title(NULL, songDesc, desc_format, NULL, playback_control::display_level_all);
+
+			if (core_api::is_main_thread()) {
+				b_done = playback_control::get()->playback_format_title(NULL, songDesc, desc_format, NULL, playback_control::display_level_all);
+			}
+			else {
+				b_done = dbHandle_item->format_title(NULL, songDesc, desc_format, NULL);
+			}
 
 			radio_filter_titleformat_hook ra_hook;
 			std::vector<pfc::string8>vfilters;
@@ -437,7 +478,7 @@ void bookmark_automatic::updateDummy() {
 			m_updating = !b_done;
 			m_updating &= dummy.need_loc_retries <= LOC_RETRIES;
 
-			dummy.set_time(playback_control_ptr->playback_get_position());
+			dummy.set_time(playback_control::get()->playback_get_position());
 			dummy.set_current_date();
 		}
 
@@ -459,6 +500,7 @@ void bookmark_automatic::updateDummy() {
 		}
 
 		dummy.subsong = dbHandle_item->get_subsong_index();
+
 		if (playlist_available) {
 			dummy.playlist = playing_playlist_name;
 			dummy.guid_playlist = guid_playing_playlist;
@@ -561,7 +603,7 @@ bool bookmark_automatic::CheckRadioFilter(pfc::string8 p_song_desc, const pfc::s
 	bool b_done;
 	if (vfields.size() > fltr::kMinRadioFields) {
 		//todo: it is running get_radio_info_sigfields again
-		fltr::radio_nfo_type rnt{ songDesc, primary_sig, vfields };
+		fltr::radio_nfo_type rnt{ songDesc, "", primary_sig, vfields};
 		size_t ires = fltr::parse_radio_info(rnt, &ra_hook, filter_res, p_tf_filter.c_str());
 		b_done = ires != SIZE_MAX;
 	}
@@ -598,7 +640,7 @@ bool bookmark_automatic::CheckRadioFilter(pfc::string8 p_song_desc, const pfc::s
 	return bres;
 }
 
-bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> guiLists) {
+bool bookmark_automatic::upgradeDummy(const metadb_handle_ptr p_pmh_now_playing, std::list< dlg::CListControlBookmark*> guiLists) {
 
 	if (dummy.isRadio()) {
 
@@ -632,7 +674,21 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 	metadb_handle_ptr track_current;
 
 	//not playing on_quit - is shutting down
-	bool bnowPlaying = playback_control_v3::get()->get_now_playing(track_current);
+	bool bnowPlaying = false;
+
+	if (core_api::is_main_thread()) {
+		bnowPlaying = playback_control_v3::get()->get_now_playing(track_current);
+	}
+	else {
+		if (p_pmh_now_playing.get_ptr()) {
+			bnowPlaying = true;
+			track_current = p_pmh_now_playing;
+		}
+		else {
+			//..
+		}
+	}
+
 	if (bnowPlaying) {
 		track_bm = track_current;
 	}
@@ -755,6 +811,10 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 		else {
 
 			dummy.need_playlist = false;
+
+			if (bookmark_store::get_no_refresh()) {
+				return false;
+			}
 
 			g_store.AddItem(std::move(bookmark_t(dummy)));
 			g_store.Write();
