@@ -6,6 +6,26 @@
 
 #include "utils.h"
 
+tm currentUnixDate(pfc::string8& out) {
+	auto t = std::time(nullptr);
+	auto curr_tm = *std::localtime(&t);
+	auto sctime = asctime(&curr_tm);
+
+	out.set_string(sctime);
+	out.truncate_last_char();
+	return curr_tm;
+}
+
+void currentFmtDate(pfc::string8& out, pfc::string8 format) {
+
+	pfc::string8 tmp_date;
+	tm curr_tm = currentUnixDate(tmp_date);
+
+	char buffer[DATE_BUFFER_SIZE];
+	std::strftime(buffer, DATE_BUFFER_SIZE, format, &curr_tm);
+	out = buffer;
+}
+
 namespace filters {
 
 	pfc::string8 ltrim(const pfc::string8& str, const char* ch) {

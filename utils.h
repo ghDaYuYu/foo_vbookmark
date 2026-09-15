@@ -3,6 +3,9 @@
 #include <string>
 #include <regex>
 
+extern tm currentUnixDate(pfc::string8& out);
+extern void currentFmtDate(pfc::string8& out, pfc::string8 format);
+
 namespace filters {
 
 	constexpr char* whitespace = " \t\r\n";;

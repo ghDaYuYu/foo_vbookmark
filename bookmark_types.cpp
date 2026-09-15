@@ -2,6 +2,7 @@
 #include <map>
 #include <sstream>
 #include "bookmark_persistence.h"
+#include "utils.h"
 #include "bookmark_types.h"
 
 int get_wday_index(std::string name)
@@ -93,4 +94,9 @@ void bookmark_t::assign_desc(pfc::string8 p_desc) {
 }
 void bookmark_t::set_fdn(pfc::string8 p_fdn) {
 	fdn = p_fdn;
+}
+
+void bookmark_t::set_current_date() {
+	currentUnixDate(date);
+	currentFmtDate(runtime_date, cfg_date_format.get());
 }

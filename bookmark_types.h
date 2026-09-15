@@ -5,11 +5,13 @@
 #include "pfc/int_types.h"
 #include "pfc/string-lite.h"
 
-#define DATE_BUFFER_SIZE 255
+#include "bookmark_preferences.h"
+
 #define LOC_RETRIES 3
 
 inline static const int kUI_CONF_VER = 2;
 inline constexpr double KMin_Lapse = 2.0;
+inline constexpr double kRestoredLapse = 4.0;
 
 struct bookmark_t {
 
@@ -100,10 +102,13 @@ public:
 		other.runtime_date.move(this->runtime_date);
 		other.name.move(this->name);
 		other.fdn.move(this->fdn);
+		other.dyna =  this->dyna;
 		other.desc.move(this->desc);
 		other.path.move(this->path);
 		other.subsong = this->subsong;
 		other.time = this->time;
+		other.need_loc_retries = this->need_loc_retries;
+		other.need_playlist = this->need_playlist;
 
 		guid_bm = tmp.guid_bm;
 		comment.move(tmp.comment);
@@ -113,10 +118,70 @@ public:
 		runtime_date.move(tmp.runtime_date);
 		name.move(tmp.name);
 		fdn.move(tmp.fdn);
+		dyna = tmp.dyna;
 		desc.move(tmp.desc);
 		path.move(tmp.path);
 		subsong = tmp.subsong;
 		time = tmp.time;
+		need_loc_retries = tmp.need_loc_retries;
+		need_playlist = tmp.need_playlist;
+	}
+
+	friend bool operator!=(const bookmark_t& lhs, const bookmark_t& rhs) {
+		return !(lhs == rhs);
+	};
+
+	bool bookmark_t::operator== (const bookmark_t& rhs) const {
+		bool bres = true;
+		bres &= pfc::guid_equal(guid_bm, rhs.guid_bm);
+		bres &= comment.equals(rhs.comment);
+		bres &= playlist.equals(rhs.playlist);
+		bres &= pfc::guid_equal(guid_playlist, rhs.guid_playlist);
+		bres &= date.equals(date);
+		bres &= runtime_date.equals(rhs.runtime_date);
+		bres &= name.equals(rhs.name);
+		bres &= fdn.equals(rhs.fdn);
+		bres &= dyna == rhs.dyna;
+		bres &= desc.equals(rhs.desc);
+		bres &= path.equals(rhs.path);
+		bres &= subsong == rhs.subsong;
+		bres &= time == rhs.time;
+		bres &= need_loc_retries == rhs.need_loc_retries;
+		bres &= need_playlist == rhs.need_playlist;
+		return bres;
+	}
+
+	bool bookmark_t::operator!=(const bookmark_t& rhs) const
+	{
+		return !(*this == rhs);
+	}
+
+	bookmark_t& operator=(const bookmark_t& other) {
+
+		if (this == &other)
+			return *this;
+
+		guid_bm = other.guid_bm;
+		comment = other.comment;
+		playlist = other.playlist;
+		guid_playlist = other.guid_playlist;
+		date= other.date;
+		runtime_date = other.runtime_date;
+		name = other.name;
+		fdn = other.fdn;
+		dyna = other.dyna;
+		desc = other.desc;
+		path = other.path;
+		subsong = other.subsong;
+		time = other.time;
+		need_loc_retries = other.need_loc_retries;
+		need_playlist = other.need_playlist;
+		return *this;
+	}
+
+
+	bookmark_t() {
+		//..
 	}
 
 	void resetDummyKeepDyna() {
@@ -127,23 +192,7 @@ public:
 		comment = tmp.comment;
 	}
 
-	inline void set_current_date() {
-
-		pfc::string8 tmp_date;
-
-		auto t = std::time(nullptr);
-		auto tm = *std::localtime(&t);
-		auto sctime = asctime(&tm);
-
-		tmp_date.set_string(sctime);
-		tmp_date.truncate_last_char();
-
-		char buffer[DATE_BUFFER_SIZE];
-		std::strftime(buffer, DATE_BUFFER_SIZE, cfg_date_format.get(), &tm);
-		runtime_date = buffer;
-		date.move(tmp_date);
-	}
-
+	void set_current_date();
 };
 
 extern void unix_str_date_to_time(pfc::string8 unix_date, time_t& out_rawtime, tm& out_tm);

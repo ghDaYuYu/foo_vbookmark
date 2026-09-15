@@ -1,9 +1,10 @@
 #include "stdafx.h"
 
-#include "bookmark_core.h";
+#include "bookmark_core.h"
 #include "bookmark_list_dialog.h"
 #include "radio_filter_titleformat_hook.h"
 #include "utils.h"
+#include "bookmark_store.h"
 #include "bookmark_preferences.h"
 
 using namespace glb;
@@ -53,6 +54,15 @@ static const GUID guid_cfg_rq_wait =
 { 0xe5864bb5, 0x774e, 0x4466, { 0x8c, 0x4d, 0xe1, 0xca, 0x9a, 0x6a, 0xc4, 0x3d } };
 // {F8C7F643-DFE5-4436-BFF3-32ABD93B9116}
 static const GUID guid_cfg_last_tab = { 0xf8c7f643, 0xdfe5, 0x4436, { 0xbf, 0xf3, 0x32, 0xab, 0xd9, 0x3b, 0x91, 0x16 } };
+// {F81C07A6-344F-43A1-B7B3-79854C815DFA}
+static const GUID guid_cfg_cu_keep_tail_count =
+{ 0xf81c07a6, 0x344f, 0x43a1, { 0xb7, 0xb3, 0x79, 0x85, 0x4c, 0x81, 0x5d, 0xfa } };
+// {D59057F8-5577-4CF2-901B-B326427F6C34}
+static const GUID guid_cfg_cu_keep_com_prefix =
+{ 0xd59057f8, 0x5577, 0x4cf2, { 0x90, 0x1b, 0xb3, 0x26, 0x42, 0x7f, 0x6c, 0x34 } };
+// {8B762846-7735-4019-AF28-548136AA090E}
+static const GUID guid_cfg_cu_keep_flag =
+{ 0x8b762846, 0x7735, 0x4019, { 0xaf, 0x28, 0x54, 0x81, 0x36, 0xaa, 0x9, 0xe } };
 
 // cfg_var
 
@@ -90,6 +100,10 @@ cfg_string cfg_rq_wait(guid_cfg_rq_wait, default_cfg_rq_wait);
 
 cfg_int cfg_last_tab(guid_cfg_last_tab, default_cfg_last_tab);
 
+cfg_string cfg_cu_keep_tail_count(guid_cfg_cu_keep_tail_count, default_cfg_cu_keep_tail_count);
+cfg_string cfg_cu_keep_com_prefix(guid_cfg_cu_keep_com_prefix, default_cfg_cu_keep_com_prefix);
+cfg_int cfg_cu_keep_flag(guid_cfg_cu_keep_flag, default_cfg_cu_keep_flag);
+
 void CBookmarkPreferences::InitTabs() {
 	tab_table.append_single(tab_entry("General", config_0_dialog_proc, IDD_DIALOG_CONF_0));
 	tab_table.append_single(tab_entry("Filters", config_1_dialog_proc, IDD_DIALOG_CONF_1));
@@ -98,9 +112,8 @@ void CBookmarkPreferences::InitTabs() {
 
 CBookmarkPreferences::~CBookmarkPreferences() {
 
-	if (glb::configuration_dialog) {
-		glb::configuration_dialog = nullptr;
-
+	if (g_wnd_preferences) {
+		g_wnd_preferences = nullptr;
 	}
 }
 
@@ -118,7 +131,7 @@ static BOOL GetChildWindowRect(HWND wnd, UINT id, RECT* child)
 
 LRESULT CBookmarkPreferences::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 
-	glb::g_wnd_bookmark_pref = m_hWnd;
+	glb::g_wnd_preferences = m_hWnd;
 
 	InitTabs();
 
@@ -206,20 +219,15 @@ void CBookmarkPreferences::OnComboChange(UINT /*uNotifyCode*/, int nId, CWindow 
 		//nothing to do
 		return;
 	}
+
+	pfc::string8 curr_date;
 	pfc::string8 strFormat = uGetDlgItemText(g_hWndCurrentTab, nId);
 
-	auto t = std::time(nullptr);
-#pragma warning( push )
-#pragma warning( disable : 4996 )
-	auto tm = *std::localtime(&t);
-	auto sctime = asctime(&tm);
-#pragma warning( pop )
-
-	char buffer[DATE_BUFFER_SIZE];
-	std::strftime(buffer, DATE_BUFFER_SIZE, strFormat, &tm);
+	currentFmtDate(curr_date, strFormat);
 
 	WCHAR wstr[kStringLength];
-	ConvertString8(buffer, wstr, kStringLength - 1);
+	ConvertString8(curr_date, wstr, kStringLength - 1);
+
 	::SetDlgItemTextW(g_hWndCurrentTab, IDC_PREVIEW_DATE_FORMAT, wstr);
 
 	m_callback->on_state_changed();
@@ -228,13 +236,13 @@ void CBookmarkPreferences::OnComboChange(UINT /*uNotifyCode*/, int nId, CWindow 
 void CBookmarkPreferences::init_current_tab() {
 
 	if (g_hWndCurrentTab == g_hWndTabDialog[CONF_0_TAB]) {
-		init_config_0_dialog(g_hWndTabDialog[CONF_0_TAB], false);
+		init_config_0_dialog(g_hWndTabDialog[CONF_0_TAB]);
 	}
 	else if (g_hWndCurrentTab == g_hWndTabDialog[CONF_1_TAB]) {
-		init_config_1_dialog(g_hWndTabDialog[CONF_1_TAB], false);
+		init_config_1_dialog(g_hWndTabDialog[CONF_1_TAB]);
 	}
 	else if (g_hWndCurrentTab == g_hWndTabDialog[CONF_2_TAB]) {
-		init_config_2_dialog(g_hWndTabDialog[CONF_2_TAB], false);
+		init_config_2_dialog(g_hWndTabDialog[CONF_2_TAB]);
 	}
 }
 
@@ -296,13 +304,13 @@ bool CBookmarkPreferences::build_current_cfg(bool reset) {
 	bool bres = false;
 
 	if (reset || g_hWndCurrentTab == g_hWndTabDialog[CONF_0_TAB]) {
-		save_config_0_dialog(g_hWndTabDialog[CONF_0_TAB], !reset);
+		save_config_0_dialog(g_hWndTabDialog[CONF_0_TAB]);
 	}
 	if (reset || g_hWndCurrentTab == g_hWndTabDialog[CONF_1_TAB]) {
-		save_config_1_dialog(g_hWndTabDialog[CONF_1_TAB], !reset);
+		save_config_1_dialog(g_hWndTabDialog[CONF_1_TAB]);
 	}
 	if (reset || g_hWndCurrentTab == g_hWndTabDialog[CONF_2_TAB]) {
-		save_config_2_dialog(g_hWndTabDialog[CONF_2_TAB], !reset);
+		save_config_2_dialog(g_hWndTabDialog[CONF_2_TAB]);
 	}
 
 	bres = reset || HasChanged();
@@ -326,7 +334,7 @@ LRESULT CBookmarkPreferences::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*
 
 	CYesNoApiDialog yndlg;
 
-	if (!yndlg.query(m_hWnd, /*true,*/ { "Reset", "Reset Discogger settings?" })) {
+	if (!yndlg.query(m_hWnd, /*true,*/ { "Reset", "Reset Vital Bookmarks settings?" })) {
 		return FALSE;
 	}
 
@@ -365,17 +373,19 @@ LRESULT CBookmarkPreferences::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*
 
 	cfg_rq_wait = default_cfg_rq_wait;
 
-	if(g_hWndCurrentTab == g_hWndTabDialog[CONF_0_TAB]) {
-		init_config_0_dialog(g_hWndCurrentTab, false);
+
+	InitCfgUIPairs();
+
+	if(g_hWndTabDialog[CONF_0_TAB]) {
+		init_config_0_dialog(g_hWndTabDialog[CONF_0_TAB]);
 	}
-	if (g_hWndCurrentTab == g_hWndTabDialog[CONF_1_TAB]) {
-		init_config_1_dialog(g_hWndCurrentTab, false);
+	if (g_hWndTabDialog[CONF_1_TAB]) {
+		init_config_1_dialog(g_hWndTabDialog[CONF_1_TAB]);
 	}
-	if (g_hWndCurrentTab == g_hWndTabDialog[CONF_2_TAB]) {
-		init_config_2_dialog(g_hWndCurrentTab, false);
+	if (g_hWndTabDialog[CONF_2_TAB]) {
+		init_config_2_dialog(g_hWndTabDialog[CONF_2_TAB]);
 	}
 
-	build_current_cfg(g_hWndCurrentTab);
 
 	OnChanged();
 
@@ -446,7 +456,7 @@ inline void InitComboDate(HWND hwndParent, UINT idc_date, pfc::string8 strval) {
 	}
 }
 
-void CBookmarkPreferences::init_config_0_dialog(HWND wnd, bool subclass) {
+void CBookmarkPreferences::init_config_0_dialog(HWND wnd) {
 
 	InitComboDate(wnd, eat_date.idc, eat_date.cfg->get_value());
 
@@ -488,7 +498,7 @@ void CBookmarkPreferences::init_config_0_dialog(HWND wnd, bool subclass) {
 	m_dark.AddControls(wnd);
 }
 
-void CBookmarkPreferences::init_config_1_dialog(HWND wnd, bool subclass) {
+void CBookmarkPreferences::init_config_1_dialog(HWND wnd) {
 
 	cfgToUi(wnd, eat_as_newtrack_playlists);
 	cfgToUi(wnd, bab_as_filter_newtrack);
@@ -501,7 +511,7 @@ void CBookmarkPreferences::init_config_1_dialog(HWND wnd, bool subclass) {
 	m_dark.AddControls(wnd);
 }
 
-void CBookmarkPreferences::init_config_2_dialog(HWND wnd, bool subclass) {
+void CBookmarkPreferences::init_config_2_dialog(HWND wnd) {
 
 	pfc::string8 info =
 		"About radio filters: \n\n" //
@@ -517,6 +527,17 @@ void CBookmarkPreferences::init_config_2_dialog(HWND wnd, bool subclass) {
 
 	cfgToUi(wnd, bab_verbose);
 	cfgToUi(wnd, bab_monitor);
+
+	cfgToUi(wnd, eat_cu_tail_count);
+	cfgToUi(wnd, eat_cu_prefix);
+
+	cfgToUi(wnd, bai_cu_flag, KEEP_TAIL_FLAG, IDC_PREF_2_KEEP_TAIL_FLAG);
+	cfgToUi(wnd, bai_cu_flag, KEEP_SEEK_FLAG, IDC_PREF_2_KEEP_SEEK_FLAG);
+	cfgToUi(wnd, bai_cu_flag, KEEP_COM_PREFIX_FLAG, IDC_PREF_2_KEEP_COM_PREFIX_FLAG);
+	cfgToUi(wnd, bai_cu_flag, KEEP_CREATE_BACKUP_FLAG, IDC_PREF_2_KEEP_CREATE_BACKUP_FLAG);
+
+	//dark mode
+	m_dark.AddControls(wnd);
 }
 
 bool CBookmarkPreferences::cfg_config_0_has_changed() {
@@ -591,10 +612,22 @@ bool CBookmarkPreferences::cfg_config_2_has_changed() {
 	bool result = false;
 	result |= isUiChanged(wnd,bab_verbose);
 	result |= isUiChanged(wnd,bab_monitor);
+
+	result |= isUiChanged(wnd, eat_cu_prefix);
+	result |= isUiChanged(wnd, eat_cu_tail_count);
+
+	int ui_fval = 0;
+	ui_fval = ::IsDlgButtonChecked(wnd, IDC_PREF_2_KEEP_TAIL_FLAG) ? ui_fval | KEEP_TAIL_FLAG : ui_fval;
+	ui_fval = ::IsDlgButtonChecked(wnd, IDC_PREF_2_KEEP_SEEK_FLAG) ? ui_fval | KEEP_SEEK_FLAG : ui_fval;
+	ui_fval = ::IsDlgButtonChecked(wnd, IDC_PREF_2_KEEP_COM_PREFIX_FLAG) ? ui_fval | KEEP_COM_PREFIX_FLAG : ui_fval;
+	ui_fval = ::IsDlgButtonChecked(wnd, IDC_PREF_2_KEEP_CREATE_BACKUP_FLAG) ? ui_fval | KEEP_CREATE_BACKUP_FLAG : ui_fval;
+
+	result |= isUiChanged(wnd, bai_cu_flag, ui_fval);
+
 	return result;
 }
 
-void CBookmarkPreferences::save_config_0_dialog(HWND wnd, bool refresh) {
+void CBookmarkPreferences::save_config_0_dialog(HWND wnd) {
 
 	bool bneedReload = false;
 
@@ -623,6 +656,7 @@ void CBookmarkPreferences::save_config_0_dialog(HWND wnd, bool refresh) {
 	uiToCfg(wnd, bab_as_newtrack);
 	uiToCfg(wnd, bab_as_focus_newtrack);
 	uiToCfg(wnd, bab_as_radio_newtrack);
+	uiToCfg(wnd, bab_as_radio_comment);
 
 	if (bab_as_newtrack.cfg->get()) {
 		g_bmAuto.updateDummy(nullptr);
@@ -652,17 +686,10 @@ void CBookmarkPreferences::save_config_0_dialog(HWND wnd, bool refresh) {
 
 	uiToCfg(wnd, eat_header_click_block_flag);
 
-	if (refresh) {
-		for (auto gui : g_guiLists) {
-			gui->ReloadItems(bit_array_true());
-		}
-	}
-
 	OnChanged();
 }
 
-
-void CBookmarkPreferences::save_config_1_dialog(HWND wnd, bool dlgbind) {
+void CBookmarkPreferences::save_config_1_dialog(HWND wnd) {
 	bool bres = false;
 	bool bneedReload = false;
 
@@ -683,10 +710,36 @@ void CBookmarkPreferences::save_config_1_dialog(HWND wnd, bool dlgbind) {
 	}
 }
 
-void CBookmarkPreferences::save_config_2_dialog(HWND wnd, bool dlgbind) {
+void CBookmarkPreferences::save_config_2_dialog(HWND wnd) {
 
 	uiToCfg(wnd, bab_verbose);
 	uiToCfg(wnd, bab_monitor);
+
+	uiToCfg(wnd, eat_cu_prefix);
+
+	pfc::string8 buffer;
+	buffer = uGetDlgItemText(wnd, eat_cu_tail_count.idc);
+	if (atoi(buffer) >= 10 && atoi(buffer) <= 1000) {
+		uiToCfg(wnd, eat_cu_tail_count);
+	}
+	else {
+		cfgToUi(wnd, eat_cu_tail_count);
+	}
+
+	buffer = uGetDlgItemText(wnd, eat_cu_prefix.idc);
+	if (buffer.get_length() < 256) {
+		uiToCfg(wnd, eat_cu_prefix);
+	}
+	else {
+		cfgToUi(wnd, eat_cu_prefix);
+	}
+
+	int ui_fval = 0;
+	ui_fval = ::IsDlgButtonChecked(wnd, IDC_PREF_2_KEEP_TAIL_FLAG) ? (ui_fval | KEEP_TAIL_FLAG) : ui_fval;
+	ui_fval = ::IsDlgButtonChecked(wnd, IDC_PREF_2_KEEP_SEEK_FLAG) ? (ui_fval | KEEP_SEEK_FLAG) : ui_fval;
+	ui_fval = ::IsDlgButtonChecked(wnd, IDC_PREF_2_KEEP_COM_PREFIX_FLAG) ? (ui_fval | KEEP_COM_PREFIX_FLAG) : ui_fval;
+	ui_fval = ::IsDlgButtonChecked(wnd, IDC_PREF_2_KEEP_CREATE_BACKUP_FLAG) ? (ui_fval | KEEP_CREATE_BACKUP_FLAG) : ui_fval;
+	uiToCfg(wnd, bai_cu_flag, ui_fval);
 
 }
 
@@ -791,7 +844,7 @@ INT_PTR WINAPI CBookmarkPreferences::on_config_0_dialog_message(HWND wnd, UINT m
 	switch (msg) {
 	case WM_INITDIALOG:
 		setting_dlg = true;
-		init_config_0_dialog(wnd, true);
+		init_config_0_dialog(wnd);
 		setting_dlg = false;
 		return TRUE;
 	case WM_COMMAND:
@@ -878,7 +931,7 @@ INT_PTR WINAPI CBookmarkPreferences::on_config_1_dialog_message(HWND wnd, UINT m
 	switch (msg) {
 	case WM_INITDIALOG:
 		setting_dlg = true;
-		init_config_1_dialog(wnd, true);
+		init_config_1_dialog(wnd);
 		setting_dlg = false;
 		return TRUE;
 	case WM_COMMAND:
@@ -968,6 +1021,52 @@ INT_PTR WINAPI CBookmarkPreferences::on_config_2_dialog_message(HWND wnd, UINT m
 			}
 			else {
 				if (HIWORD(wp) == BN_CLICKED) {
+
+					if (nId == IDC_PREF_2_BTT_CLEAN_UP) {
+
+						if (cfg_config_2_has_changed()) {
+
+							CYesNoApiDialog yndlg;
+							auto res = yndlg.query(m_hWnd, { "Vital Bookmarks configuration changes","Apply configuration and continue?" }, false, false);
+
+							switch (res) {
+							case 0:
+								return FALSE;
+							case 1:
+								//yes
+								save_config_2_dialog(wnd);
+								m_callback->on_state_changed();
+								OnChanged();
+								break;
+							case 2:
+								return FALSE;
+							}
+						}
+
+						bookmark_store bs;
+						auto new_list = bs.Discard_Bookmarks(g_store.GetMasterList(), false);
+
+						CYesNoApiDialog yndlg;
+
+						pfc::string8 msg = "Save results ?\n";
+						msg << "Number of bookmarks after clean-up: " << new_list.size();
+
+						if (!yndlg.query(m_hWnd, { "Clean up bookmarks", msg })) {
+							//
+							return FALSE;
+							//
+						}
+
+						g_store.SetMasterList(new_list);
+
+						for (auto gui : g_guiLists) {
+
+							gui->ReloadData();
+							gui->ReloadItems(bit_array_true());
+							gui->Invalidate(true);
+
+						}
+					}
 					OnChanged();
 					return FALSE;
 				}
@@ -991,10 +1090,13 @@ void CBookmarkPreferences::apply() {
 			isUiChanged(g_hWndCurrentTab, eat_date));
 
 	if (g_hWndCurrentTab == g_hWndTabDialog[CONF_0_TAB]) {
-		save_config_0_dialog(g_hWndCurrentTab, false);
+		save_config_0_dialog(g_hWndCurrentTab);
 	}
 	else if (g_hWndCurrentTab == g_hWndTabDialog[CONF_1_TAB]) {
-		save_config_1_dialog(g_hWndCurrentTab, false);
+		save_config_1_dialog(g_hWndCurrentTab);
+	}
+	else if (g_hWndCurrentTab == g_hWndTabDialog[CONF_2_TAB]) {
+		save_config_2_dialog(g_hWndCurrentTab);
 	}
 
 	if (bneedReload) {

@@ -162,6 +162,8 @@ public:
 		return m_nofresh;
 	}
 
+	std::vector<bookmark_t> Discard_Bookmarks(std::vector<bookmark_t> master_list);
+
 private:
 
 	inline static std::mutex m_store_lock;

@@ -40,6 +40,18 @@ extern UINT UMSG_PAUSED;
 #define MISC_DUP_REMOVE_PREV_FLAG             1 << 4
 //cfg_lapse_flag
 #define LAPSE_FLAG_ENABLED                    1 << 0
+//cfg_cu_keep_flag 
+#define KEEP_CU_FIELD1                        1 << 0
+#define KEEP_CU_FIELD2                        1 << 1
+#define KEEP_CU_FIELD3                        1 << 2
+#define KEEP_CU_FIELD4                        1 << 3
+#define KEEP_CU_FIELD5                        1 << 4
+//
+#define KEEP_TAIL_FLAG                        1 << 5
+#define KEEP_SEEK_FLAG                        1 << 6
+#define KEEP_COM_PREFIX_FLAG                  1 << 7
+#define KEEP_CREATE_BACKUP_FLAG               1 << 8
+
 
 extern cfg_string cfg_desc_format;
 extern cfg_string cfg_date_format;
@@ -74,6 +86,10 @@ extern cfg_string cfg_rq_wait;
 
 extern cfg_int cfg_last_tab;
 
+extern cfg_string cfg_cu_keep_tail_count;
+extern cfg_string cfg_cu_keep_com_prefix;
+extern cfg_int cfg_cu_keep_flag;
+
 inline bool is_cfg_Bookmarking() { return !(cfg_status_flag.get_value() & STATUS_PAUSED_FLAG); }
 
 inline bool is_cfg_Queuing() { return cfg_queue_flag.get_value() & QUEUE_RESTORE_TO_FLAG; }
@@ -92,6 +108,11 @@ inline int get_cfg_lapse() { return atoi(cfg_lapse.get_value()); }
 
 inline int get_cfg_header_cb_flag() { return atoi(cfg_header_click_block_flag.get_value()); }
 inline bool is_cfg_Header_Click_Blocked(size_t ndx) { return get_cfg_header_cb_flag() & (1 << ndx); }
+
+inline bool is_cfg_cu_keep_tail() { return cfg_cu_keep_flag.get_value() & KEEP_TAIL_FLAG; }
+inline bool is_cfg_cu_keep_seek() { return !cfg_cu_keep_flag.get() && cfg_misc_flag.get_value() & KEEP_SEEK_FLAG; }
+inline bool is_cfg_cu_keep_prefix() { return cfg_cu_keep_flag.get_value() & KEEP_COM_PREFIX_FLAG; }
+inline bool is_cfg_cu_keep_backup() { return cfg_cu_keep_flag.get_value() & KEEP_CREATE_BACKUP_FLAG; }
 
 //snapLeft, snapTop, snapRight, snapBottom
 const CDialogResizeHelper::Param rz_params[] = {
@@ -137,6 +158,12 @@ static const pfc::string8 default_cfg_tf_filter = "$if($or($strstr(%title%,ANEWS
 
 static const int default_cfg_last_tab = 0;
 
+static const pfc::string8 default_cfg_cu_keep_tail_count = "100";
+static const pfc::string8 default_cfg_cu_keep_com_prefix = "";
+
+static const int default_cfg_cu_keep_flag = KEEP_TAIL_FLAG | KEEP_SEEK_FLAG | KEEP_CREATE_BACKUP_FLAG;
+
+
 
 extern HWND g_hWndCurrentTab;
 
@@ -165,40 +192,83 @@ private:
 	static_api_ptr_t<playback_control> m_playback_control;
 	const preferences_page_callback::ptr m_callback;
 
-	ectrlAndString_t eat_format = { IDC_TITLEFORMAT, &cfg_desc_format, default_cfg_bookmark_desc_format };
-	ectrlAndString_t eat_date = { IDC_CMB_DATEFORMAT, &cfg_date_format, default_cfg_date_format };
-	ectrlAndString_t eat_as_newtrack_playlists = { IDC_AUTOSAVE_TRACK_FILTER, &cfg_autosave_newtrack_playlists, default_cfg_autosave_newtrack_playlists };
+	ectrlAndString_t eat_format;
+	ectrlAndString_t eat_date;
+	ectrlAndString_t eat_as_newtrack_playlists;
 
-	ectrlAndString_t eat_lapse = { IDC_LAPSE, &cfg_lapse, default_cfg_lapse };
-	boxAndBool_t bab_display_ms = { IDC_DISPLAY_MS, &cfg_display_ms, default_cfg_display_ms };
+	ectrlAndString_t eat_lapse;
+	boxAndBool_t bab_display_ms;
 
-	boxAndBool_t bab_as_newtrack = { IDC_AUTOSAVE_TRACK, &cfg_autosave_newtrack, default_cfg_autosave_newtrack };
-	boxAndBool_t bab_as_focus_newtrack = { IDC_AUTOSAVE_FOCUS_TRACK, &cfg_autosave_focus_newtrack, default_cfg_autosave_focus_newtrack };
-	boxAndBool_t bab_as_radio_newtrack = { IDC_AUTOSAVE_RADIO_TRACK, &cfg_autosave_radio_newtrack, default_cfg_autosave_radio_newtrack };
-	boxAndBool_t bab_as_radio_comment = { IDC_AUTOSAVE_RADIO_COMMENT_ST, &cfg_autosave_radio_comment, default_cfg_autosave_radio_comment };
-	boxAndBool_t bab_as_filter_newtrack = { IDC_AUTOSAVE_TRACK_FILTER_CHECK, &cfg_autosave_filter_newtrack, default_cfg_autosave_filter_newtrack };
-	boxAndBool_t bab_as_exit = { IDC_AUTOSAVE_EXIT, &cfg_autosave_on_quit, default_cfg_autosave_on_quit };
+	boxAndBool_t bab_as_newtrack;
+	boxAndBool_t bab_as_focus_newtrack;
+	boxAndBool_t bab_as_radio_newtrack;
+	boxAndBool_t bab_as_radio_comment;
+	boxAndBool_t bab_as_filter_newtrack;
+	boxAndBool_t bab_as_exit;
 
-	boxAndBool_t bab_verbose = { IDC_VERBOSE, &cfg_verbose, default_cfg_verbose };
-	boxAndBool_t bab_monitor = { IDC_MONITOR, &cfg_monitor, default_cfg_monitor };
+	boxAndBool_t bab_verbose;
+	boxAndBool_t bab_monitor;
 
-	boxAndInt_t bai_queue_flag = { IDC_QUEUE_FLAG, &cfg_queue_flag, default_cfg_queue_flag };
-	boxAndInt_t bai_status_flag = { IDC_STATUS_FLAG, &cfg_status_flag, default_cfg_status_flag };
+	boxAndInt_t bai_queue_flag;
+	boxAndInt_t bai_status_flag;
 
-	boxAndBool_t bab_edit_mode = { IDC_EDIT_MODE, &cfg_edit_mode, default_cfg_edit_mode };
+	boxAndBool_t bab_edit_mode;
 
-	boxAndInt_t bai_misc_flag = { IDC_MISC_FLAG_ENTER_KEY_DOWN, &cfg_misc_flag, default_cfg_misc_flag };
+	boxAndInt_t bai_misc_flag;
 
-	boxAndInt_t bai_lapse_flag = { IDC_LAPSE_FLAG, &cfg_lapse_flag, default_cfg_lapse_flag };
+	boxAndInt_t bai_lapse_flag;
 
-	ectrlAndString_t eat_header_click_block_flag = { IDC_HIDDEN_HEADER_CLICK_BLOCK_FLAG, &cfg_header_click_block_flag, default_cfg_header_click_block_flag };
-#ifdef REC_AUDIO
-	ectrlAndString_t eat_dst_rec_path = { IDC_EDIT_REC_DST, &cfg_dst_rec_path, default_cfg_dst_rec_path };
-#endif
-	ectrlAndString_t eat_txt_filter = { IDC_EDIT_AUTO_TXT_FILTER, &cfg_txt_filter, default_cfg_txt_filter };
-	ectrlAndString_t eat_tf_filter = { IDC_EDIT_AUTO_TF_FILTER, &cfg_tf_filter, default_cfg_tf_filter };
+	ectrlAndString_t eat_header_click_block_flag;
 
-	ectrlAndString_t eat_rq_wait = { IDC_RQ_WAIT, &cfg_rq_wait, default_cfg_rq_wait };
+	ectrlAndString_t eat_txt_filter;
+	ectrlAndString_t eat_tf_filter;
+
+	ectrlAndString_t eat_rq_wait;
+
+	ectrlAndString_t eat_cu_tail_count;
+	ectrlAndString_t eat_cu_prefix;
+	boxAndInt_t bai_cu_flag;
+
+
+	void InitCfgUIPairs() {
+		eat_format = { IDC_TITLEFORMAT, &cfg_desc_format, default_cfg_bookmark_desc_format };
+		eat_date = { IDC_CMB_DATEFORMAT, &cfg_date_format, default_cfg_date_format };
+		eat_as_newtrack_playlists = { IDC_AUTOSAVE_TRACK_FILTER, &cfg_autosave_newtrack_playlists, default_cfg_autosave_newtrack_playlists };
+
+		eat_lapse = { IDC_LAPSE, &cfg_lapse, default_cfg_lapse };
+		bab_display_ms = { IDC_DISPLAY_MS, &cfg_display_ms, default_cfg_display_ms };
+
+		bab_as_newtrack = { IDC_AUTOSAVE_TRACK, &cfg_autosave_newtrack, default_cfg_autosave_newtrack };
+		bab_as_focus_newtrack = { IDC_AUTOSAVE_FOCUS_TRACK, &cfg_autosave_focus_newtrack, default_cfg_autosave_focus_newtrack };
+		bab_as_radio_newtrack = { IDC_AUTOSAVE_RADIO_TRACK, &cfg_autosave_radio_newtrack, default_cfg_autosave_radio_newtrack };
+		bab_as_radio_comment = { IDC_AUTOSAVE_RADIO_COMMENT_ST, &cfg_autosave_radio_comment, default_cfg_autosave_radio_comment };
+		bab_as_filter_newtrack = { IDC_AUTOSAVE_TRACK_FILTER_CHECK, &cfg_autosave_filter_newtrack, default_cfg_autosave_filter_newtrack };
+		bab_as_exit = { IDC_AUTOSAVE_EXIT, &cfg_autosave_on_quit, default_cfg_autosave_on_quit };
+
+		bab_verbose = { IDC_VERBOSE, &cfg_verbose, default_cfg_verbose };
+		bab_monitor = { IDC_MONITOR, &cfg_monitor, default_cfg_monitor };
+
+		bai_queue_flag = { IDC_QUEUE_FLAG, &cfg_queue_flag, default_cfg_queue_flag };
+		bai_status_flag = { IDC_STATUS_FLAG, &cfg_status_flag, default_cfg_status_flag };
+
+		bab_edit_mode = { IDC_EDIT_MODE, &cfg_edit_mode, default_cfg_edit_mode };
+
+		bai_misc_flag = { IDC_MISC_FLAG_ENTER_KEY_DOWN, &cfg_misc_flag, default_cfg_misc_flag };
+
+		bai_lapse_flag = { IDC_LAPSE_FLAG, &cfg_lapse_flag, default_cfg_lapse_flag };
+
+		eat_header_click_block_flag = { IDC_HIDDEN_HEADER_CLICK_BLOCK_FLAG, &cfg_header_click_block_flag, default_cfg_header_click_block_flag };
+
+		eat_txt_filter = { IDC_EDIT_AUTO_TXT_FILTER, &cfg_txt_filter, default_cfg_txt_filter };
+		eat_tf_filter = { IDC_EDIT_AUTO_TF_FILTER, &cfg_tf_filter, default_cfg_tf_filter };
+
+		eat_rq_wait = { IDC_RQ_WAIT, &cfg_rq_wait, default_cfg_rq_wait };
+
+		eat_cu_tail_count = { IDC_PREF_2_KEEP_TAIL_COUNT, &cfg_cu_keep_tail_count, default_cfg_cu_keep_tail_count };
+		eat_cu_prefix = { IDC_PREF_2_KEEP_COM_PREFIX, &cfg_cu_keep_com_prefix, default_cfg_cu_keep_com_prefix };
+		bai_cu_flag = { IDC_PREF_2_KEEP_HIDDEN_FLAG, &cfg_cu_keep_flag, default_cfg_cu_keep_flag };
+
+	}
 
 	void cfgToUi(HWND wnd, boxAndBool_t bab) {
 		CCheckBox cb(::GetDlgItem(wnd, bab.idc));
@@ -313,16 +383,16 @@ private:
 
 	void init_current_tab();
 
-	void init_config_0_dialog(HWND wnd, bool subclass);
-	void init_config_1_dialog(HWND wnd, bool subclass);
-	void init_config_2_dialog(HWND wnd, bool subclass);
+	void init_config_0_dialog(HWND wnd);
+	void init_config_1_dialog(HWND wnd);
+	void init_config_2_dialog(HWND wnd);
 
 	bool build_current_cfg(bool reset);
 	void pushcfg(bool reset);
 
-	void save_config_0_dialog(HWND wnd, bool dlgbind);
-	void save_config_1_dialog(HWND wnd, bool dlgbind);
-	void save_config_2_dialog(HWND wnd, bool dlgbind);
+	void save_config_0_dialog(HWND wnd);
+	void save_config_1_dialog(HWND wnd);
+	void save_config_2_dialog(HWND wnd);
 
 	bool cfg_config_0_has_changed();
 	bool cfg_config_1_has_changed();
@@ -370,7 +440,7 @@ public:
 	LRESULT OnPaused() { cfgToUi(g_hWndCurrentTab, bai_status_flag); HasChanged(); return 0; }
 
 	CBookmarkPreferences(preferences_page_callback::ptr callback) :	m_callback(callback), m_resize_helper(rz_params) {
-		//..
+		InitCfgUIPairs();
 	}
 
 	~CBookmarkPreferences();
