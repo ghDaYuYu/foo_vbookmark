@@ -198,10 +198,23 @@ IDD_DIALOG_CONF_2 DIALOGEX 0, 0, 319, 270
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LTEXT           "$",IDC_STATIC_INFO,7,10,303,136
-    CONTROL         "Verbose console log",IDC_VERBOSE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,224,187,78,10
-    CONTROL         "Callback monitor (required for auto-creation)",IDC_MONITOR,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,151,217,164,10
+    CONTROL         "Verbose console log",IDC_VERBOSE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,227,129,78,10
+    PUSHBUTTON      "Discard bookmarks",IDC_PREF_2_BTT_CLEAN_UP,27,155,85,14
+    CONTROL         "Callback monitor (needed auto-creation)",IDC_MONITOR,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,163,143,147,10
+    LTEXT           "Preserve:",IDC_STATIC,12,174,32,8
+    EDITTEXT        IDC_PREF_2_KEEP_HIDDEN_FLAG,124,172,12,14,ES_AUTOHSCROLL | NOT WS_VISIBLE
+    CONTROL         "Tail (10..1K):",IDC_PREF_2_KEEP_TAIL_FLAG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,188,56,10
+    EDITTEXT        IDC_PREF_2_KEEP_TAIL_COUNT,78,186,23,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "Non-radio with seek Time > 00:00",IDC_PREF_2_KEEP_SEEK_FLAG,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,203,128,10
+    CONTROL         "With Comments prefixed by:",IDC_PREF_2_KEEP_COM_PREFIX_FLAG,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,217,106,10
+    EDITTEXT        IDC_PREF_2_KEEP_COM_PREFIX,129,215,86,14,ES_AUTOHSCROLL
+    LTEXT           "$",IDC_STATIC_INFO,7,10,303,114
+    LTEXT           "Note: Sort by date column to preview tail before discarding bookmarks. After the tail, the latest bookmark per playlist will also be preserved.\n",IDC_STATIC,12,247,269,19
+    CONTROL         "Back up current bookmarks",IDC_PREF_2_KEEP_CREATE_BACKUP_FLAG,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,232,102,10
 END
 
 

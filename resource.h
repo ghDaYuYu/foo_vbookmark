@@ -54,15 +54,18 @@
 #define IDC_1CLK_EDIT_MODE              1058
 #define IDC_PLAY_ON_INIT_FLAG           1059
 #define IDC_RQ_ON_INIT_FLAG             1061
+#define IDC_RQ_WAIT                     1070
+#define IDC_RQ_WAIT_LBL                 1071
+#define IDC_PREF_2_KEEP_TAIL_COUNT      1072
 #define IDC_STATIC_INFO                 1073
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        113
+#define _APS_NEXT_RESOURCE_VALUE        156
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1074
+#define _APS_NEXT_CONTROL_VALUE         1083
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif
