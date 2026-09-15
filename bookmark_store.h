@@ -24,7 +24,7 @@ public:
 	}
 
 	size_t Size() {
-
+		//todo: NoRefreshScope
 		if (m_nofresh) {
 			return 0;
 		}
@@ -32,10 +32,11 @@ public:
 		return m_masterList.size();
 	};
 
-	bool Initialize() {
+	//todo: remove callbacks
+	bool Initialize(bool ordered, std::function<void()> p_callback) {
 
 		m_is_dirty = false;
-		return m_persist.readDataFileJSON(m_masterList);
+		return m_persist.readDataFileJSON(m_masterList, ordered, p_callback);
 	}
 
 	const bookmark_t _getItem(size_t pos) {
@@ -60,99 +61,120 @@ public:
 	void _addItem(const bookmark_t rec) {
 		m_masterList.emplace_back(rec);
 	}
-	void AddItem(const bookmark_t rec) {
 
-		if (m_nofresh) {
-			return;
-		}
+	//todo: remove callbacks
+	void AddItem(const bookmark_t rec, std::function<void()> p_add_bookmark_callback) {
 
-		m_is_dirty = true;
-		_addItem(rec);
+		fb2k::splitTask([this, rec, p_add_bookmark_callback]() {
+
+			size_t c = 0; 
+
+			while (c < 10) {
+			
+				try {
+					std::lock_guard<std::mutex> guard(m_store_lock);
+					m_is_dirty = true;
+					_addItem(rec);
+					p_add_bookmark_callback();
+					break;
+				}
+				catch (...) {
+					Sleep(1000);
+					c++;
+				}
+
+			}
+		});
 	}
 
 	void _reorder(const pfc::array_t<t_size> p_order, t_size p_count) {
 		pfc::reorder_t(m_masterList, p_order.get_ptr(), p_count);
 	}
 	void Reorder(const pfc::array_t<t_size> p_order, t_size p_count) {
-
-		m_is_dirty = true;
-		_reorder(p_order, p_count);
+		size_t c = 0;
+		while (c < 10) {
+			try {
+				std::lock_guard<std::mutex> guard(m_store_lock);
+				m_is_dirty = true;
+				_reorder(p_order, p_count);
+				break;
+			}
+			catch (...) {
+				Sleep(1000);
+				c++;
+			}
+		}
+		
 	}
 	void _write() {
-
+		//todo: remove callbacks
 		auto write_callback = [this]() {
 
 			m_is_dirty = false;
+
 		};
 
-		std::lock_guard<std::mutex> guard(m_store_lock);
-
-		m_persist.writeDataFile(m_masterList, write_callback);
-
+		try {
+			std::lock_guard<std::mutex> guard(m_store_lock);
+			m_persist.writeDataFile(m_masterList, write_callback);
+		}
+		catch (...) {
+			FB2K_console_print_v("Skipping writting to file (busy).");
+			return;
+		}
 		return;
 	}
 
-	void Write(bool thread_pool = true) {
-
-		{
-
-			if (m_nofresh) {
-				return;
-			}
-
-			if (!m_is_dirty) {
-				FB2K_console_print_v("Saving... nothing to do.");
-				return;
-			}
-		}
-
-		//not thread safe
-		setlocale(LC_ALL, ".UTF8");
-		//
-
-		if (thread_pool) {
-
-			if (!is_cfg_Instant_Write()) {
-				FB2K_console_print_v("Saving later.");
-				return;
-			}
-
-			//thread pool, m_is_dirty set by callback
-			_write();
-		}
-		else {
-			//app close blocker splitTask
-
-			auto work = [this] {
-				try {
-
-					this->m_persist.writeDataFileJSON(this->m_masterList);
-					this->m_is_dirty = false;
-					FB2K_console_print_v("Saved.");
-				}
-				catch (std::exception const& /*e*/) {
-					//..
-				}
-			};
-			fb2k::splitTask(work);
-			return;
-			}
-	}
+	void Write(bool thread_pool = true);
 
 	void _remove(const bit_array& p_mask) {
 		pfc::remove_mask_t(m_masterList, p_mask);
 	}
-	void Remove(const bit_array_bittable p_mask) {
+	void Remove(const bit_array_bittable p_mask, std::function<void()> p_remove_callback) {
 
-		m_is_dirty = true;
-		_remove(p_mask);
+		//todo: remove callbacks
+
+		fb2k::splitTask([this, p_mask, p_remove_callback]() {
+
+			size_t c = 0;
+
+			while (c < 10) {
+				try {
+					std::lock_guard<std::mutex> guard(m_store_lock);
+					m_is_dirty = true;
+					_remove(p_mask);
+					p_remove_callback();
+					break;
+				}
+				catch (...) {
+					Sleep(1000);
+					c++;
+				}
+			}
+			});
 	}
 
 	void _clear() { m_masterList.clear(); }
-	void Clear() {
+	void Clear(std::function<void()> p_callback) {
+		//todo: remove callbacks
+		fb2k::splitTask([this, p_callback]() {
 
-		m_is_dirty = true;
-		_clear();
+			size_t c = 0;
+
+			while (c < 10) {
+				try {
+					std::lock_guard<std::mutex> guard(m_store_lock);
+					m_is_dirty = true;
+					_clear();
+					p_callback();
+					break;
+				}
+				catch (...) {
+					Sleep(1000);
+					c++;
+				}
+			}
+			});
 	}
 
 	inline static void set_no_refresh(bool st) {
@@ -165,6 +187,9 @@ public:
 	std::vector<bookmark_t> Discard_Bookmarks(std::vector<bookmark_t> master_list);
 
 private:
+
+	inline static std::mutex& get_lock() { return bookmark_store::m_store_lock; }
+
 
 	inline static std::mutex m_store_lock;
 	inline static bool m_nofresh = false;

@@ -11,54 +11,101 @@ namespace {
 
 		virtual void on_init() {
 
-			g_store.Initialize();
+			//todo: remove callbacks
+			std::function add_bookmark_callback([](/) {
+				//todo: NoRefreshScope
+				bookmark_store::set_no_refresh(false);
 
-			if (is_cfg_Play_OnInit() &&
-					!playback_control::get()->is_playing() &&
-					!playlist_manager::get()->queue_get_count()) {
+				fb2k::inMainThread([]() {
 
-				FB2K_console_print_v("Restoring last bookmark on startup.");
-				size_t cmaster = g_store.GetMasterList().size();
+					FB2K_console_print_v("Restoring last bookmark on startup.");
+					size_t cmaster = g_store.GetMasterList().size();
 
-				if (cmaster) {
+					if (cmaster) {
 
-					bookmark_worker bmWorker;
-					bmWorker.restore(cmaster - 1);
+						for (std::list<dlg::CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
+							(*it)->ShowWindow(SW_SHOW);
+							(*it)->ReloadItems(bit_array_true());
+							(*it)->OnItemsInserted(cmaster - 1, cmaster, false);
+							(*it)->Invalidate(true);
+						}
+						if (g_primaryGuiList) {
+							g_primaryGuiList->RestoreLastFocus();
+						}
 
-					if (is_cfg_Rq_OnInit()) {
+						if (is_cfg_Play_OnInit() &&
+							!playback_control::get()->is_playing() &&
+							!playlist_manager::get()->queue_get_count()) {
 
-						bookmark_t bm = g_store.GetItem(cmaster - 1);
+							bookmark_worker bmWorker;
+							bmWorker.restore(cmaster - 1);
 
-						metadb_handle_list mhl;
-						metadb_handle_ptr mhp;
+							if (is_cfg_Rq_OnInit()) {
 
-						bool res = playback_control::get()->get_now_playing(mhp);
-						mhl.add_item(mhp);
+								bookmark_t bm = g_store.GetItem(cmaster - 1);
 
-						ThreadUtils::cmdThread cmd;
-						cmd.add([mhl]() {
+								metadb_handle_list mhl;
+								metadb_handle_ptr mhp;
+								bool res = playback_control::get()->get_now_playing(mhp);
+								mhl.add_item(mhp);
 
-							Sleep(atoi(cfg_rq_wait.get()) * 1000);
+								ThreadUtils::cmdThread cmd;
+								cmd.add([mhl]() {
 
-							fb2k::inMainThread([mhl]() {
+									Sleep(atoi(cfg_rq_wait.get()) * 1000);
 
-								menu_helpers::name_to_guid_table menu_table;
+									fb2k::inMainThread([mhl]() {
 
-								GUID guid_fbn;
-								bool res = mainmenu_commands_v3::g_find_by_name("Restore last session queue", guid_fbn);
-								if (res) {
-									FB2K_console_print_v("Restoring queue on startup.");
-									mainmenu_commands_v3::g_execute(guid_fbn);
-								}
-								}); //main thread
-							}); //thread pool
+										menu_helpers::name_to_guid_table menu_table;
+
+										GUID guid_fbn;
+										bool res = mainmenu_commands_v3::g_find_by_name("Restore last session queue", guid_fbn);
+										if (res) {
+											FB2K_console_print_v("Restoring queue on startup.");
+											mainmenu_commands_v3::g_execute(guid_fbn);
+										}
+
+										}); //main thread
+									}); //thread pool
+							}
+						}
 					}
+				});
+				});
+
+			ThreadUtils::cmdThread cmd;
+			cmd.add([add_bookmark_callback] {
+
+				bool ordered = false;
+				if (GetPrimaryGuiList()) {
+					ordered = g_primaryGuiList->GetSortOrder();
 				}
-			}
-			if (g_primaryGuiList) {
-				g_primaryGuiList->ReloadData();
-				g_primaryGuiList->RestoreLastFocus();
-			}
+
+				bookmark_t bm_loading;
+				bm_loading.set_desc("loading");
+				bm_loading.set_current_date();
+				g_store.AddItem(bm_loading, std::function<void()>([]() {
+					if (GetPrimaryGuiList()) {
+						fb2k::inMainThread([]() {
+
+							for (std::list<dlg::CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
+								(*it)->ShowWindow(SW_SHOW);
+								(*it)->ReloadData();
+								(*it)->ReloadItems(bit_array_true());
+								(*it)->ShowScrollBar(SB_VERT, true);
+								(*it)->Invalidate(true);
+							}
+
+							ThreadUtils::cmdThread cmd_set; cmd_set.add([]() {
+								//todo: NoRefreshScope
+								Sleep(100);
+								});
+							});
+					}
+					}));
+
+				bool done = g_store.Initialize(ordered, add_bookmark_callback);
+			});
 		}
 
 		virtual void on_quit() {
@@ -67,8 +114,13 @@ namespace {
 
 				if (g_bmAuto.checkDummy()) {
 
-					g_store.AddItem(g_bmAuto.getDummy());
+					g_store.AddItem(g_bmAuto.getDummy(),
+						//todo: remove callbacks
+						std::function<void()>([]() { g_store.Write(false); }));
 				}
+				//
+				return;
+				//
 			}
 			g_store.Write(false);
 		}

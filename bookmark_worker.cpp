@@ -20,10 +20,82 @@ bookmark_worker::~bookmark_worker()
 	//..
 }
 
-void bookmark_worker::store(const bookmark_t bookmark, bool exact_time) {
+//todo: remove callbacks
+void bookmark_worker::store(const bookmark_t bookmark, std::function<void()>add_bookmark_callback, bool exact_time) {
 
-	g_store.AddItem(bookmark);
+	g_store.AddItem(bookmark, add_bookmark_callback);
+
+	//
+
 	return;
+
+	//
+
+	bookmark_t newMark;
+
+	if (cfg_monitor.get()) {
+		newMark = bookmark;
+		newMark.set_current_date();
+	}
+	else {
+		pfc::string_formatter songDesc;
+		metadb_handle_ptr dbHandle_item;
+		auto playback_control_ptr = playback_control::get();
+
+		if (!playback_control_ptr->get_now_playing(dbHandle_item)) {
+
+			FB2K_console_print_e("Get_now_playing failed, can only store time.");
+			songDesc << "Could not find playing song info.";
+
+			newMark.set_desc(songDesc.c_str());
+			newMark.playlist = "";
+			newMark.guid_playlist = pfc::guid_null;
+			newMark.path = "";
+			newMark.subsong = 0;
+			newMark.set_current_date();
+		}
+		else {
+			titleformat_object::ptr desc_format;
+			static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(desc_format, cfg_desc_format.get_value().c_str());
+
+			if (!dbHandle_item->format_title(NULL, songDesc, desc_format, NULL)) {
+				songDesc << "Could not generate Description.";
+			}
+
+			pfc::string8 playing_pl_name = cfg_monitor ? "Could not read playlist name." : "";
+
+			size_t index_playlist;
+			GUID guid_playlist = pfc::guid_null;
+			size_t index_item;
+			auto playlist_manager_ptr = playlist_manager_v5::get();
+			if (playlist_manager_ptr->get_playing_item_location(&index_playlist, &index_item)) {
+				playlist_manager_ptr->playlist_get_name(index_playlist, playing_pl_name);
+				guid_playlist = playlist_manager_v5::get()->playlist_get_guid(index_playlist);
+			}
+
+			pfc::string8 songPath = dbHandle_item->get_path();
+
+			newMark.set_desc(songDesc);
+			newMark.playlist = playing_pl_name.c_str();
+			newMark.guid_playlist = guid_playlist;
+			newMark.path = songPath;
+			newMark.subsong = dbHandle_item->get_subsong_index();
+			newMark.set_current_date();
+
+			if (newMark.isRadio()) {
+				titleformat_object::ptr p_script;
+				pfc::string8 titleformat = cfg_desc_format.get_value();
+				static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(p_script, titleformat);
+
+				pfc::string_formatter songDesc;
+				if (playback_control::get()->playback_format_title(NULL, songDesc, p_script, NULL, playback_control::display_level_all)) {
+					newMark.set_desc(songDesc.c_str());
+				}
+			}
+		}
+	}
+
+	g_store.AddItem(newMark, add_bookmark_callback);
 }
 
 void bookmark_worker::restore(size_t index) {

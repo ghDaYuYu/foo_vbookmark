@@ -139,3 +139,49 @@ bookmark_store::~bookmark_store()
 {
 	//..
 }
+
+void bookmark_store::Write(bool thread_pool) {
+	{
+		//todo: NoRefreshScope
+		if (m_nofresh) {
+			return;
+		}
+
+		if (!m_is_dirty) {
+			FB2K_console_print_v("Saving... nothing to do.");
+			return;
+		}
+	}
+
+	//not thread safe
+	setlocale(LC_ALL, ".UTF8");
+	//
+
+	if (thread_pool) {
+
+		if (!is_cfg_Instant_Write()) {
+			FB2K_console_print_v("Saving later.");
+			return;
+		}
+
+		_write();
+	}
+	else {
+
+		//app close blocker splitTask
+
+		auto work = [this] {
+			try {
+
+				this->m_persist.writeDataFileJSON(m_masterList);
+				this->m_is_dirty = false;
+				FB2K_console_print_v("Saved.");
+			}
+			catch (std::exception const&) {
+				//..
+			}
+		};
+		fb2k::splitTask(work);
+		return;
+	}
+}

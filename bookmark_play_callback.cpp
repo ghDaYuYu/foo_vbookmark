@@ -67,8 +67,8 @@ namespace {
 
 		g_bmAuto.ResetRestoredDummyTime();
 
-		if (g_wnd_bookmark_pref) {
-			SendMessage(g_wnd_bookmark_pref, UMSG_NEW_TRACK, NULL, NULL);
+		if (g_wnd_preferences) {
+			SendMessage(g_wnd_preferences, UMSG_NEW_TRACK, NULL, NULL);
 		}
 
 		return;

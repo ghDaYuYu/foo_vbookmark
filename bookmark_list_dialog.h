@@ -190,22 +190,30 @@ namespace dlg {
 
 			if (focus) {
 				for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
-					size_t item = (std::min)((int)index, (int)g_store.Size() - 1);
-					bit_array_bittable changeMask(bit_array_false(), g_primaryGuiList->GetItemCount());
+
 					size_t new_pos = index;
 					if ((*it)->GetSortOrder()) {
-						index = (*it)->GetItemCount() - index;
+						index = (std::max)((int)((*it)->GetItemCount() - index - 1), 0);
 					}
+
+					size_t c = g_primaryGuiList->GetItemCount();
+
 					(*it)->SelectNone();
-					(*it)->EnsureItemVisible(index, false);
-					(*it)->SetFocusItem(index);
-					(*it)->OnItemsInserted(index, 1, true);
-					(*it)->ReloadItem(index);
+					if (c) {
+						(*it)->EnsureItemVisible(index, false);
+						(*it)->SetFocusItem(index);
+						(*it)->OnItemsInserted(index, 1, true);
+						(*it)->ReloadItem(index);
+					}
+					else {
+						(*it)->ReloadData();
+						(*it)->Invalidate();
+					}
 				}
 			}
 		}
 
-		static void CancelUIListEdits() {
+		static void UI_CancelListEdits() {
 
 			for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
 
@@ -215,35 +223,79 @@ namespace dlg {
 			}
 		}
 
-		static void UpdateUINewBookmarks() {
+		static void UI_OnItemsRemoved() {
+			for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
+				(*it)->OnItemsRemoved(pfc::bit_array_true(), g_store.Size());
+			}
+		}
 
-			// UI
-			std::lock_guard<std::mutex> ui_guard(m_mx_UI_Add_Bookmark_Refresh);
-
-			fb2k::inMainThread([]() {
-				
-				
-				CListCtrlMarkDialog::CancelUIListEdits();
-
-				for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
-					size_t item = (std::max)(0, (int)g_store.Size() - 1);
-					if ((*it)->GetSortOrder()) {
-						item = 0;
-					}
-					(*it)->SelectNone();
-					(*it)->OnItemsInserted(item, 1, true);
-					(*it)->EnsureItemVisible(item, false);
-					(*it)->SetFocusItem(item);
+		static void UI_OnItemsInserted() {
+			for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
+				size_t size = g_store.Size();
+				if (!size) {
+					//
+					break;
+					//
 				}
-				
-				
-				});
+				size_t item = (std::max)(0, (int)g_store.Size() - 1);
+				if ((*it)->GetSortOrder()) {
+					item = 0;
+				}
+				(*it)->SelectNone();
+				(*it)->OnItemsInserted(item, 1, true);
+				(*it)->EnsureItemVisible(item, false);
+				(*it)->SetFocusItem(item);
+			}
+		}
+
+		static void UI_UpdateNewBookmarks() {
+
+			try {
+				std::unique_lock<std::mutex> lock_guard(bookmark_store::get_lock());
+
+				// UI
+				std::lock_guard<std::mutex> ui_guard(m_mx_UI_Add_Bookmark_Refresh);
+
+				fb2k::inMainThread([&lock_guard]() {
+
+					CListCtrlMarkDialog::UI_CancelListEdits();
+
+					try {
+
+						CListCtrlMarkDialog::UI_OnItemsInserted();
+
+						lock_guard.release();
+
+					}
+					catch (...) {
+
+						lock_guard.release();
+
+					}
+
+					});
+
+			}
+			catch (...) {
+				//
+				return;
+				//
+			}
 
 		}
 
 		//context menu and toolbar
 
 		static void addBookmarkSelected(metadb_handle_list p_mhl, bool bfrom_playlist) {
+
+			std::function<void()> add_bookmark_callback([]() {
+
+				// UI
+				UI_UpdateNewBookmarks();
+
+				});
+
+
 			auto mh = p_mhl.get_item(0);
 			bookmark_t bm;
 
@@ -274,15 +326,16 @@ namespace dlg {
 			}
 
 			ThreadUtils::cmdThread cmd;
-			cmd.add([bm]() {
+			//todo: remove callbacks
+			cmd.add([bm, add_bookmark_callback]() {
 
 				bookmark_worker bmWorker;
-				bmWorker.store(bm, true);
+				bmWorker.store(bm, add_bookmark_callback, true);
 			});
 
 			// UI
 
-			UpdateUINewBookmarks();
+			UI_UpdateNewBookmarks();
 		}
 
 		static void addBookmark() {
@@ -335,16 +388,17 @@ namespace dlg {
 
 		static void clearBookmarks() {
 
-			CListCtrlMarkDialog::CancelUIListEdits();
-			g_store.Clear();
+			g_store.Clear(std::function<void()>([]() {
 
-			for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
-				(*it)->OnItemsRemoved(pfc::bit_array_true(),g_store.Size());
-			}
+				g_store.Write();
 
-			g_store.Write();
+				//UI
+
+				CListCtrlMarkDialog::UI_CancelListEdits();
+				CListCtrlMarkDialog::UI_OnItemsRemoved();
+
+				}));
 		}
-
 		static bool canStore() {
 			return play_control::get()->is_playing();
 		}
@@ -370,12 +424,15 @@ namespace dlg {
 				auto it = std::find_if(bmlist.rbegin(), bmlist.rend(), [plgui, check_file](const bookmark_t& bm) {
 					bool bm_found = pfc::guid_equal(bm.guid_playlist, plgui);
 
-					bool bm_file_check = true;
+					bool bm_file_check = false;
 					if (check_file && bm_found && bm.path.startsWith("file")) {
 						abort_callback_impl p_abort;
 							try {
 							if (!filesystem_v3::g_exists(bm.path.c_str(), p_abort)) {
 								bm_file_check = false;
+							}
+							else {
+								bm_file_check = true;
 							}
 						}
 						catch (exception_aborted) {
@@ -860,14 +917,14 @@ namespace dlg {
 						auto res = cfg_status_flag.get_value();
 						res  ^= STATUS_PAUSED_FLAG;
 						cfg_status_flag.set(res);
-						if (g_wnd_bookmark_pref) {
-							SendMessage(g_wnd_bookmark_pref, UMSG_PAUSED, NULL, NULL);
+						if (g_wnd_preferences && ::IsWindow(g_wnd_preferences)) {
+							SendMessage(g_wnd_preferences, UMSG_PAUSED, NULL, NULL);
 						}
 						break;
 					}
 					case ID_PREF_PAGE: {
-						if (::IsWindow(g_wnd_bookmark_pref)) {
-							::SetFocus(g_wnd_bookmark_pref);
+						if (::IsWindow(g_wnd_preferences)) {
+							::SetFocus(g_wnd_preferences);
 						}
 						else {
 							static_api_ptr_t<ui_control>()->show_preferences(g_get_prefs_guid());

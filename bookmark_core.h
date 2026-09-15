@@ -19,11 +19,11 @@ inline extern UINT UMSG_PAUSED = WM_USER + 1002;
 
 namespace glb {
 
+	inline HWND g_wnd_preferences = NULL;
+
 	inline std::list<dlg::CListControlBookmark*> g_guiLists;
 
 	inline bookmark_automatic g_bmAuto;
-
-	inline HWND g_wnd_bookmark_pref = NULL;
 
 	inline bookmark_store g_store;      //masterList
 	inline bookmark_persistence g_file; //JSON file

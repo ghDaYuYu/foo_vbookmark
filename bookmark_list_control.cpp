@@ -15,7 +15,13 @@ namespace dlg {
 	// ILOD overrides
 
 	size_t ILOD_BookmarkSource::listGetItemCount(ctx_t) {
-		return g_store.Size();
+		try {
+			//todo: NoRefreshScope
+			return g_store.Size();
+		}
+		catch (...) {
+			return 0;
+		}
 	}
 
 	inline pfc::string8 make_time_col(bookmark_t rec, bool mill) {
@@ -44,16 +50,6 @@ namespace dlg {
 	}
 
 	pfc::string8 ILOD_BookmarkSource::listGetSubItemText(ctx_t ctx, size_t item, size_t subItem) {
-
-		try {
-			if (bookmark_store::get_no_refresh()) {
-				return "";
-			}
-
-		}
-		catch (...) {
-			return "";
-		}
 
 		CListControlBookmark* plc = (CListControlBookmark*)(ctx);
 
@@ -87,8 +83,6 @@ namespace dlg {
 
 	bool ILOD_BookmarkSource::listReorderItems(ctx_t ctx, const size_t* order, size_t count) {
 
-		auto masterList = g_store.GetMasterList();
-
 		PFC_ASSERT(count == g_store.Size());
 
 		CListControlBookmark* plc = (CListControlBookmark*)(ctx);
@@ -108,9 +102,10 @@ namespace dlg {
 			g_store.Reorder(order_data, count);
 		}
 
-		CListCtrlMarkDialog::CancelUIListEdits();
-
 		g_store.Write();
+
+		CListCtrlMarkDialog::UI_CancelListEdits();
+
 		return true;
 	}
 
@@ -132,20 +127,26 @@ namespace dlg {
 		}
 
 		g_bmAuto.checkDeletedRestoredDummy(new_mask, oldCount);
-
-		g_store.Remove(new_mask);
+		
+		//todo: remove callbacks
+		g_store.Remove(new_mask, std::function<void()>([ctx, new_mask, oldCount]() {
 
 		//Update all guiLists
 
-		for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
-			if ((*it) != ctx) {
-				(*it)->OnItemsRemoved(new_mask, oldCount);
-			}
-		}
-
-		CListCtrlMarkDialog::CancelUIListEdits();
-
 		g_store.Write();
+
+		fb2k::inMainThread([ctx, new_mask, oldCount]() {
+
+			for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
+				if ((*it) != ctx) {
+					(*it)->OnItemsRemoved(new_mask, oldCount);
+				}
+			}
+
+			CListCtrlMarkDialog::UI_CancelListEdits();
+
+			});
+		}));
 
 		return true;
 	}
