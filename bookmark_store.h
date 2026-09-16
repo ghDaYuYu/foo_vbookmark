@@ -89,10 +89,34 @@ public:
 			});
 	}
 
-			}
-		});
+	void _addItems(const std::vector<bookmark_t> vrec) {
+		m_masterList.insert(m_masterList.end(), vrec.begin(), vrec.end());
 	}
+	void AddItems(const std::vector<bookmark_t> vrec, std::function<void()> p_add_bookmark_callback) {
+		ThreadUtils::cmdThread cmdThStore;
+		cmdThStore.add([this, vrec, p_add_bookmark_callback]() {
 
+			size_t c = 0;
+
+			while (c < 10) {
+
+				try {
+					{
+						std::lock_guard<std::mutex> guard(get_lock());
+						m_is_dirty = true;
+						_addItems(vrec);
+					}
+					p_add_bookmark_callback();
+					break;
+				}
+				catch (...) {
+					Sleep(1000);
+					c++;
+				}
+				}
+			});
+		}
+	
 	void _reorder(const pfc::array_t<t_size> p_order, t_size p_count) {
 		pfc::reorder_t(m_masterList, p_order.get_ptr(), p_count);
 	}
@@ -100,7 +124,7 @@ public:
 		size_t c = 0;
 		while (c < 10) {
 			try {
-				std::lock_guard<std::mutex> guard(m_store_lock);
+				std::lock_guard<std::mutex> guard(get_lock());
 				m_is_dirty = true;
 				_reorder(p_order, p_count);
 				break;
@@ -113,7 +137,7 @@ public:
 		
 	}
 	void _write() {
-		//todo: remove callbacks
+
 		auto write_callback = [this]() {
 
 			m_is_dirty = false;
@@ -125,7 +149,7 @@ public:
 			m_persist.writeDataFile(m_masterList, write_callback);
 		}
 		catch (...) {
-			FB2K_console_print_v("Skipping writting to file (busy).");
+			FB2K_console_print_v("Skipping writting to file busy");
 			return;
 		}
 		return;
@@ -169,7 +193,7 @@ public:
 
 			while (c < 10) {
 				try {
-					std::lock_guard<std::mutex> guard(m_store_lock);
+					std::lock_guard<std::mutex> guard(get_lock());
 					m_is_dirty = true;
 					_clear();
 					p_callback();

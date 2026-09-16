@@ -98,6 +98,13 @@ void bookmark_worker::store(const bookmark_t bookmark, std::function<void()>add_
 	g_store.AddItem(newMark, add_bookmark_callback);
 }
 
+void bookmark_worker::store(const std::vector<bookmark_t> vbookmark, std::function<void()>add_bookmark_callback, bool exact_time) {
+
+	g_store.AddItems(vbookmark, add_bookmark_callback);
+
+	return;
+}
+
 void bookmark_worker::restore(size_t index) {
 
 	bool bempty = g_store.GetMasterList().empty();

@@ -6,8 +6,7 @@
 
 //ref. to bookmark_dialog.cpp
 void bbookmarkHook_store();
-//todo: rev unnecessary params
-void bbookmarkHook_store_selected(metadb_handle_list mhl, bool from_playlist);
+void bbookmarkHook_store_selected(metadb_handle_list mhl, bool from_playlist, bool from_nowplaying);
 void bbookmarkHook_restore();
 void bbookmarkHook_restoreActivePlaylist(size_t last_played, bool check_file);
 void bbookmarkHook_clear();
@@ -89,12 +88,25 @@ void contextmenu_item_foo_vb::item_execute_simple(unsigned p_index, const GUID& 
 	}
 
 	if (p_node == guid_ctx_menu_node_add_selected_bookmark) {
-	
+
+		bool bfrom_nowplaying = pfc::guid_equal(p_caller, contextmenu_item::caller_now_playing);
 		bool bfrom_playlist = pfc::guid_equal(p_caller, contextmenu_item::caller_active_playlist_selection)
 			|| pfc::guid_equal(p_caller, contextmenu_item::caller_active_playlist);
 
-		if (bbookmarkHook_canStoreSelected())
-			bbookmarkHook_store_selected(p_data, bfrom_playlist);
+		if (bfrom_nowplaying) {
+			size_t active_playlist = playlist_manager_v5::get()->get_active_playlist();
+			if (active_playlist != SIZE_MAX) {
+				size_t res_pos;
+				bool res = playlist_manager_v5::get()->playlist_find_item(active_playlist, p_data.get_item(0), res_pos);
+				if (res) {
+					bfrom_playlist = true;
+				}
+			}
+		}
+
+		if (bbookmarkHook_canStoreSelected()) {
+			bbookmarkHook_store_selected(p_data, bfrom_playlist, bfrom_nowplaying);
+		}
 	}
 }
 
@@ -155,7 +167,7 @@ bool contextmenu_item_node_root_popup_vb::get_display_data(pfc::string_base& p_o
 
 t_size contextmenu_item_node_root_popup_vb::get_children_count()
 {
-	return 3 + 1; // add bookmark + restore latest from active + separator + preference page
+	return 4 + 1; // add bookmark + add selected + restore latest from active + separator + preference page
 }
 
 contextmenu_item_node* contextmenu_item_node_root_popup_vb::get_child(t_size p_index)
@@ -172,7 +184,7 @@ contextmenu_item_node* contextmenu_item_node_root_popup_vb::get_child(t_size p_i
 			else if (p_index == 1) {
 				return new contextmenu_item_node_add_vb();
 			}
-			else if (p_index == 1) {
+			else if (p_index == 2) {
 				return new contextmenu_item_node_restore_active();
 			}
 			else {
@@ -232,7 +244,7 @@ bool contextmenu_item_node_add_vb::get_display_data(pfc::string_base& p_out, uns
 {
 	metadb_handle_ptr mhp;
 	auto bres = playback_control_v3::get()->get_now_playing(mhp);
-	if (!bres || !p_data.get_count()) {
+	if (!bres|| !p_data.get_count() == 1) {
 			p_displayflags = FLAG_DISABLED_GRAYED;
 	}
 	else {
@@ -272,7 +284,7 @@ bool contextmenu_item_node_add_selected_vb::get_display_data(pfc::string_base& p
 {
 	metadb_handle_ptr mhp;
 	auto np = playback_control_v3::get()->get_now_playing(mhp);
-	if (!p_data.get_count() == 1) {
+	if (!p_data.get_count()) {
 		p_displayflags = FLAG_DISABLED_GRAYED;
 	}
 	else {
@@ -284,17 +296,29 @@ bool contextmenu_item_node_add_selected_vb::get_display_data(pfc::string_base& p
 
 bool contextmenu_item_node_add_selected_vb::get_description(pfc::string_base& p_out)
 {
-	p_out = "Add single selection bookmark";
+	p_out = "Add selection to bookmarks";
 	return true;
 }
 
 void contextmenu_item_node_add_selected_vb::execute(metadb_handle_list_cref p_data, const GUID& p_caller)
 {
+	bool bfrom_nowplaying = pfc::guid_equal(p_caller, contextmenu_item::caller_now_playing);
 	bool bfrom_playlist = pfc::guid_equal(p_caller, contextmenu_item::caller_active_playlist_selection)
 		|| pfc::guid_equal(p_caller, contextmenu_item::caller_active_playlist);
 
+	if (bfrom_nowplaying) {
+		size_t active_playlist = playlist_manager_v5::get()->get_active_playlist();
+		if (active_playlist != SIZE_MAX) {
+			size_t res_pos;
+			bool res = playlist_manager_v5::get()->playlist_find_item(active_playlist, p_data.get_item(0), res_pos);
+			if (res) {
+				bfrom_playlist = true;
+			}
+		}
+	}
+
 	if (bbookmarkHook_canStoreSelected())
-		bbookmarkHook_store_selected(p_data, bfrom_playlist);
+		bbookmarkHook_store_selected(p_data, bfrom_playlist, bfrom_nowplaying);
 }
 
 GUID contextmenu_item_node_add_selected_vb::get_guid()

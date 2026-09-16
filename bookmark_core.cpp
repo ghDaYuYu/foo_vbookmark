@@ -13,7 +13,7 @@ namespace {
 //==================Hooks for main menu=======================
 
 void bbookmarkHook_store() { CListCtrlMarkDialog::addBookmark(); }
-void bbookmarkHook_store_selected(metadb_handle_list mhl, bool bfrom_playlist) { CListCtrlMarkDialog::addBookmarkSelected(mhl, bfrom_playlist); }
+void bbookmarkHook_store_selected(metadb_handle_list mhl, bool bfrom_playlist, bool bfrom_nowplaying) { CListCtrlMarkDialog::addBookmarkSelected(mhl, bfrom_playlist, bfrom_nowplaying); }
 void bbookmarkHook_restore() { CListCtrlMarkDialog::restoreFocusedBookmark(); }
 void bbookmarkHook_restoreActivePlaylist(size_t last_played, bool check_file) { CListCtrlMarkDialog::restoreBookmark(last_played, check_file); }
 void bbookmarkHook_clear() { CListCtrlMarkDialog::clearBookmarks(); }

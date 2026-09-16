@@ -15,7 +15,7 @@ static mainmenu_group_popup_factory g_mainmenu_group(guid_vbookmark_main_menu_gr
 
 //ref. to bookmark_dialog.cpp
 void bbookmarkHook_store();
-void bbookmarkHook_store_selected(metadb_handle_list mhl, bool from_playlist);
+void bbookmarkHook_store_selected(metadb_handle_list mhl, bool from_playlist, bool from_nowplaying);
 void bbookmarkHook_restore();
 void bbookmarkHook_restoreActivePlaylist(size_t last_played, bool check_file = false);
 void bbookmarkHook_clear();
@@ -63,7 +63,7 @@ public:
 
 	void get_name(t_uint32 p_index, pfc::string_base & p_out) {
 		switch (p_index) {
-		case cmd_store_selected: p_out = "Add Bookmark single selection"; break;
+		case cmd_store_selected: p_out = "Add Selection Bookmarks"; break;
 		case cmd_store: p_out = "Add Now Playing Bookmark"; break;
 		case cmd_restore: p_out = "Restore Bookmark"; break;
 		case cmd_restoreActivePlaylistLastPlayed: p_out = "Restore last bookmark from the active playlist"; break;
@@ -74,7 +74,7 @@ public:
 
 	bool get_description(t_uint32 p_index, pfc::string_base & p_out) {
 		switch (p_index) {
-		case cmd_store_selected: p_out = "Stores a single selection bookmark"; return true;
+		case cmd_store_selected: p_out = "Stores selection bookmarks"; return true;
 		case cmd_store: p_out = "Stores the playback position to a bookmark"; return true;
 		case cmd_restore: p_out = "Restores the playback position from the bookmark selected by in the first element to be instantiated."; return true;
 		case cmd_restoreActivePlaylistLastPlayed: p_out = "Restores the last bookmark from the active playlist."; return true;
@@ -115,11 +115,23 @@ public:
 			ui_selection_manager::get()->get_selection(mhl);
 
 			auto guid_type = ui_selection_manager::get()->get_selection_type();
+			bool bfrom_nowplaying = pfc::guid_equal(guid_type, contextmenu_item::caller_now_playing);
 			bool bfrom_playlist = pfc::guid_equal(guid_type, contextmenu_item::caller_active_playlist_selection)
 				|| pfc::guid_equal(guid_type, contextmenu_item::caller_active_playlist);
 
+			if (bfrom_nowplaying) {
+				size_t active_playlist = playlist_manager_v5::get()->get_active_playlist();
+				if (active_playlist != SIZE_MAX) {
+					size_t res_pos;
+					bool res = playlist_manager_v5::get()->playlist_find_item(active_playlist, mhl.get_item(0), res_pos);
+					if (res) {
+						bfrom_playlist = true;
+					}
+				}
+			}
+
 			if (bbookmarkHook_canStoreSelected())
-				bbookmarkHook_store_selected(mhl, bfrom_playlist);
+				bbookmarkHook_store_selected(mhl, bfrom_playlist, bfrom_nowplaying);
 			break;
 		}
 		case cmd_store:

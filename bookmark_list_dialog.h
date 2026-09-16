@@ -288,7 +288,7 @@ namespace dlg {
 
 		//context menu and toolbar
 
-		static void addBookmarkSelected(metadb_handle_list p_mhl, bool bfrom_playlist) {
+		static void addBookmarkSelected(metadb_handle_list p_mhl, bool bfrom_playlist, bool bnow_playing) {
 
 			std::function<void()> add_bookmark_callback([]() {
 
@@ -297,47 +297,74 @@ namespace dlg {
 
 				});
 
+			std::vector<bookmark_t> vbm;
+			bool bsingle_sel = p_mhl.get_count() == 1;
+			size_t max_items = 256;
+			size_t i = 0;
 
-			auto mh = p_mhl.get_item(0);
-			bookmark_t bm;
+			for each(auto mh in p_mhl) {
 
-			bm.set_current_date();
+				if (++i >= max_items) { break; }
 
-			bm.path = mh->get_path();
+				bookmark_t bm;
+				bm.set_current_date();
+				bm.path = mh->get_path();
+				bm.subsong = mh->get_subsong_index();
 
-			if (bm.isRadio()) {
-				FB2K_console_print_v("Skipping bookmark to external selection. Please, try Now Playing instead.", bm.get_desc());
-				return;
+				bookmark_t bm_monitor = g_bmAuto.getDummy();
+
+				if (bsingle_sel && cfg_monitor) {
+					//assist unselected single selection tracks in active playlist
+					if (bm_monitor.path.equals(bm.path) && bm_monitor.get_desc().get_length()) {
+						bm.set_desc(bm_monitor.get_desc());
+						bm.playlist = bm_monitor.playlist;
+						bm.guid_playlist = bm_monitor.guid_playlist;
+					}
+				}
+				if (!bm.get_desc().get_length()) {
+					pfc::string8 desc;
+					titleformat_object::ptr desc_format;
+					static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(desc_format, cfg_desc_format.get_value().c_str());
+					bool b_done = mh->format_title(NULL, desc, desc_format, NULL);
+					bm.set_desc(desc);
+				}
+
+				if (bfrom_playlist && !bm.playlist.get_length()) {
+					pfc::string playlist;
+					playlist_manager::get()->activeplaylist_get_name(playlist);
+					size_t playlist_index = playlist_manager_v6::get()->get_active_playlist();
+					GUID guid = playlist_manager_v6::get()->playlist_get_guid(playlist_index);
+
+					if (bsingle_sel && cfg_monitor && !bm_monitor.need_playlist && pfc::guid_equal(bm_monitor.guid_playlist, guid)) {
+						bm.playlist = bm_monitor.playlist;
+						bm.guid_playlist = bm_monitor.guid_playlist;
+					}
+					else {
+						bm.playlist = playlist;
+						bm.guid_playlist = guid;
+					}
+				}
+				vbm.emplace_back(bm);
 			}
 
-			bm.subsong = mh->get_subsong_index();
+			if (bsingle_sel) {
 
-			pfc::string8 desc;
-			titleformat_object::ptr desc_format;
-			static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(desc_format, cfg_desc_format.get_value().c_str());
-			bool b_done = mh->format_title(NULL, desc, desc_format, NULL);
-			bm.set_desc(desc);
+				ThreadUtils::cmdThread cmd;
+				cmd.add([vbm, add_bookmark_callback]() {
 
-			if (bfrom_playlist) {
-				pfc::string playlist;
-				playlist_manager::get()->activeplaylist_get_name(playlist);
-				bm.playlist = playlist;
-				size_t playlist_index = playlist_manager_v6::get()->get_active_playlist();
-				GUID guid = playlist_manager_v6::get()->playlist_get_guid(playlist_index);
-				bm.guid_playlist = guid;
+					bookmark_worker bmWorker;
+					bmWorker.store(vbm[0], add_bookmark_callback, true);
+					});
 			}
+			else {
 
-			ThreadUtils::cmdThread cmd;
-			//todo: remove callbacks
-			cmd.add([bm, add_bookmark_callback]() {
+				ThreadUtils::cmdThread cmd;
+				cmd.add([vbm, add_bookmark_callback]() {
 
-				bookmark_worker bmWorker;
-				bmWorker.store(bm, add_bookmark_callback, true);
-			});
-
-			// UI
-
-			UI_UpdateNewBookmarks();
+					bookmark_worker bmWorker;
+					bmWorker.store(vbm, add_bookmark_callback, true);
+					});
+			}
 		}
 
 		static void addBookmark() {
@@ -425,7 +452,7 @@ namespace dlg {
 		static bool canStoreSelected() {
 			metadb_handle_list mhl;
 			ui_selection_manager::get()->get_selection(mhl);
-			return mhl.get_count() == 1;
+			return (bool)mhl.get_count();
 		}
 		
 		static bool canRestore() {
