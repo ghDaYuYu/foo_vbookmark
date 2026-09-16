@@ -51,9 +51,11 @@ namespace dlg {
 		uint32_t listGetEditFlags(ctx_t ctx, size_t item, size_t subItem) override;
 		pfc::string8 listGetEditField(ctx_t ctx, size_t item, size_t subItem, size_t& lineCount) override;
 		void listSetEditField(ctx_t ctx, size_t item, size_t subItem, const char* val) override;
+
 		virtual void listColumnHeaderClick(ctx_t, size_t subItem) override {
 			//..
 		}
+
 		// Called prior to a typefind pass attempt, you can either deny entirely, or prepare any necessary data and allow it.
 		bool listAllowTypeFind(ctx_t) override { return true; }
 		// Allow type-find in a specific item/column?

@@ -102,6 +102,7 @@ cfg_int cfg_last_tab(guid_cfg_last_tab, default_cfg_last_tab);
 
 cfg_string cfg_cu_keep_tail_count(guid_cfg_cu_keep_tail_count, default_cfg_cu_keep_tail_count);
 cfg_string cfg_cu_keep_com_prefix(guid_cfg_cu_keep_com_prefix, default_cfg_cu_keep_com_prefix);
+
 cfg_int cfg_cu_keep_flag(guid_cfg_cu_keep_flag, default_cfg_cu_keep_flag);
 
 void CBookmarkPreferences::InitTabs() {
@@ -251,7 +252,7 @@ LRESULT CBookmarkPreferences::OnChangingTab(WORD /*wNotifyCode*/, LPNMHDR /*lPar
 	if (get_state() & preferences_state::changed) {
 
 		CYesNoApiDialog yndlg;
-		auto res = yndlg.query(m_hWnd, { "Configuration Changes","Apply Changes ?" }, true, false);
+		auto res = yndlg.query(m_hWnd, { "Configuration Changes","Apply Changes?" }, true, false);
 
 		switch (res) {
 		case 1:
@@ -872,7 +873,13 @@ INT_PTR WINAPI CBookmarkPreferences::on_config_0_dialog_message(HWND wnd, UINT m
 					OnChanged();
 					return FALSE;
 				}
-				if (nId == IDC_PLAY_ON_INIT_FLAG) {
+				if (nId == IDC_EDIT_MODE) {
+
+					CWindow(::GetDlgItem(wnd, IDC_1CLK_EDIT_MODE)).EnableWindow((bool)((!::IsDlgButtonChecked(wnd, IDC_EDIT_MODE) & BST_CHECKED)));
+					OnChanged();
+					return FALSE;
+				}
+				else if (nId == IDC_PLAY_ON_INIT_FLAG) {
 
 					CWindow(::GetDlgItem(wnd, IDC_RQ_ON_INIT_FLAG)).EnableWindow((bool)((::IsDlgButtonChecked(wnd, IDC_PLAY_ON_INIT_FLAG) & BST_CHECKED) &&
 						(!::IsDlgButtonChecked(wnd, IDC_QUEUE_FLAG) & BST_CHECKED)));

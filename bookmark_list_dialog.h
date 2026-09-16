@@ -388,6 +388,10 @@ namespace dlg {
 
 		static void clearBookmarks() {
 
+			CYesNoApiDialog yndlg;
+			auto res = yndlg.query(core_api::get_main_window(), { "Clear all bookmarks","All bookmarks will be deleted. Continue?" }, false, false);
+			if (!res) { return; }
+
 			g_store.Clear(std::function<void()>([]() {
 
 				g_store.Write();
@@ -422,27 +426,23 @@ namespace dlg {
 				auto bmlist = g_store.GetMasterList();
 				bool file_exists = false;
 				auto it = std::find_if(bmlist.rbegin(), bmlist.rend(), [plgui, check_file](const bookmark_t& bm) {
+
 					bool bm_found = pfc::guid_equal(bm.guid_playlist, plgui);
 
-					bool bm_file_check = false;
-					if (check_file && bm_found && bm.path.startsWith("file")) {
+					if (bm_found && check_file && bm.path.startsWith("file")) {
 						abort_callback_impl p_abort;
-							try {
-							if (!filesystem_v3::g_exists(bm.path.c_str(), p_abort)) {
-								bm_file_check = false;
-							}
-							else {
-								bm_file_check = true;
-							}
+						try {
+							bm_found = filesystem_v3::g_exists(bm.path.c_str(), p_abort);
 						}
 						catch (exception_aborted) {
-							bm_file_check = false;
+							bm_found = false;
 						}
 					}
-					bm_found &= bm_file_check;
 					return bm_found; });
+
 				if (it != bmlist.rend()) {
-					ndx_last_played = bmlist.size() - std::distance(bmlist.rbegin(), it) - 1;
+					size_t restore_pos = std::distance(bmlist.rbegin(), it);
+					ndx_last_played = bmlist.size() - restore_pos - 1;
 				}
 			}
 			return ndx_last_played != SIZE_MAX;
@@ -716,7 +716,6 @@ namespace dlg {
 						descriptions.Set(ID_SELECTNONE, "Deselects all items");
 						descriptions.Set(ID_INVERTSEL, "Invert selection");
 						descriptions.Set(ID_ASSIGN_PLAYLIST, "Drop selected bookmarks the active playlist then reassign playlist");
-						//descriptions.Set(ID_INVERTSEL, "The primary list's selection determines the bookmark restored by the global restore command.");
 						descriptions.Set(ID_REFRESH_DESC, "Refresh bookmarks by updating the description format as defined in the preference settings");
 
 						cmd = menu.TrackPopupMenuEx(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, descriptions, nullptr);

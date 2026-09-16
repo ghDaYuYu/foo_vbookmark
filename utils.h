@@ -27,6 +27,7 @@ namespace filters {
 
 	struct radio_nfo_type {
 	pfc::string8 radio_info;
+		pfc::string8 xml_station;
 	std::pair<size_t, size_t> primary_sig;
 	std::vector<pfc::string8> vfields;
 	};

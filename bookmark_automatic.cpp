@@ -300,14 +300,17 @@ void bookmark_automatic::updateDummy(const metadb_handle_ptr p_pmh_now_playing/*
 				//station
 				pfc::string8 station;
 
-				//Station
-				file_info_impl fi;
-				dbHandle_item->get_info(fi);
+				if (dbHandle_item.get_ptr()) {
 
-				size_t pos = fi.meta_find("title");
-				if (pos != SIZE_MAX) {
-					station = fi.meta_get("title", 0);
-					station = filters::autoFixEncoding(station.c_str()).c_str();
+					//Station
+					file_info_impl fi;
+					dbHandle_item->get_info(fi);
+
+					size_t pos = fi.meta_find("title");
+					if (pos != SIZE_MAX) {
+						station = fi.meta_get("title", 0);
+						station = filters::autoFixEncoding(station.c_str()).c_str();
+					}
 				}
 
 				bool is_scoop = station.toLower().has_prefix("scoop");
@@ -773,17 +776,13 @@ bool bookmark_automatic::upgradeDummy(const metadb_handle_ptr p_pmh_now_playing,
 
 			if (dummy.need_playlist || (brev_time && brev_path_guid_subsong && brev_desc_or_radio) || bradio_same_desc_any_time) {
 
-				if (allowed_duplicates && (brev_start)) {
-
-					dup_ndx = std::distance(std::rbegin(masterList), rit);
-					dup_ndx = masterList.size() - dup_ndx - 1;
+				if (allowed_duplicates && brev_start) {
 
 					if (realloc_prev_duplicate) {
-						bit_array_bittable changeMask(bit_array_false(), masterList.size());
-						changeMask.set(dup_ndx, true);
-						g_store.Remove(changeMask);
-						FB2K_console_print_v("Deleted duplicated bmookmark: ", dummy.path);
-						delete_item_ui(dup_ndx, g_guiLists);
+
+						dup_ndx = std::distance(std::rbegin(masterList), rit);
+						dup_ndx = masterList.size() - dup_ndx - 1;
+
 						break;
 					}
 				}
@@ -803,8 +802,16 @@ bool bookmark_automatic::upgradeDummy(const metadb_handle_ptr p_pmh_now_playing,
 			}
 		}
 
-		bool bshutting_down = core_api::is_shutting_down();
-		if (bshutting_down && masterList.size()) {
+		if (dup_ndx != SIZE_MAX) {
+			bit_array_bittable changeMask(bit_array_false(), masterList.size());
+			changeMask.set(dup_ndx, true);
+
+			g_store.Remove(changeMask, std::function<void()>([]() {}));
+
+		}
+
+
+		if (core_api::is_shutting_down() && masterList.size()) {
 			FB2K_console_print_v("Shutting down.");
 			//..
 		}
@@ -849,7 +856,7 @@ void bookmark_automatic::SetRestoredDummy(bookmark_t& bm) {
 bool bookmark_automatic::isRestoredDummy(const bookmark_t& bm) {
 	if (bm.isRadio()) return false;
 	if (restored_dummy.get_time() || pfc::guid_equal(restored_dummy.guid_playlist, bm.guid_playlist) &&
-		(restored_dummy.path.equals(bm.path)) && abs(restored_dummy.get_time() - bm.get_time()) <= 3) {
+		(restored_dummy.path.equals(bm.path)) && abs(restored_dummy.get_time() - bm.get_time()) <= kRestoredLapse) {
 		return true;
 	}
 	return false;

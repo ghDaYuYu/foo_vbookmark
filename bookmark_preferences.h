@@ -88,7 +88,9 @@ extern cfg_int cfg_last_tab;
 
 extern cfg_string cfg_cu_keep_tail_count;
 extern cfg_string cfg_cu_keep_com_prefix;
+
 extern cfg_int cfg_cu_keep_flag;
+
 
 inline bool is_cfg_Bookmarking() { return !(cfg_status_flag.get_value() & STATUS_PAUSED_FLAG); }
 

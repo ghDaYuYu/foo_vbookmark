@@ -120,7 +120,7 @@ namespace filters {
 				}
 				
 			}
-			else if (split_list.get_count() <= kMinRadioFields + 1) {
+			else if (split_list.get_count() <= kMinRadioFields + 1 && !split_list.by_index(split_list.get_count()-1).get()->equals("vbm")) {
 				//artist album song
 				//const pfc::string8 artist = split_list.by_index(0).get()->c_str();
 				const pfc::string8 album = split_list.by_index(2).get()->c_str();
@@ -198,7 +198,7 @@ namespace filters {
 				}
 			}
 			else {
-				if (primary_ok != SIZE_MAX && w <= kMinRadioFields && wlen) {
+				if (primary_ok != SIZE_MAX && w < kMinRadioFields && wlen) {
 					primary_ok++;
 				}
 			}
@@ -294,6 +294,7 @@ namespace filters {
 	void get_radio_nfo(const pfc::string8 desc, radio_nfo_type& rnt) {
 
 		pfc::string8 xml_desc;
+		pfc::string8 xml_station;
 		std::vector<pfc::string8> vfields;
 
 		if (desc.startsWith("<?xml")) {
@@ -306,16 +307,18 @@ namespace filters {
 				pfc::string8 title = doc.child("RadioInfo").child("Table").child("DB_DALET_TITLE_NAME").child_value();
 				pfc::string8 artist = doc.child("RadioInfo").child("Table").child("DB_DALET_ARTIST_NAME").child_value();
 				pfc::string8 album = doc.child("RadioInfo").child("Table").child("DB_ALBUM_NAME").child_value();
+				xml_station = doc.child("RadioInfo").child("Table").child("DB_RADIO_NAME").child_value();
 
 				if (title.get_length()) {
 					xml_desc = PFC_string_formatter() << title << "~" << artist << "~" << album << "~~" << "vbm";
 					xml_desc = filters::autoFixEncoding(xml_desc.c_str()).c_str();
+					rnt.xml_station = filters::autoFixEncoding(xml_station.c_str()).c_str();
 				}
 			}
 		}
 
 		std::pair<size_t, size_t> primary_sig = get_radio_info_sigfields(xml_desc.get_length() ? xml_desc : desc, rnt.vfields);
-		rnt.radio_info = desc;
+		rnt.radio_info = xml_desc.get_length() ? xml_desc : desc;
 		rnt.primary_sig = primary_sig;
 	}
 

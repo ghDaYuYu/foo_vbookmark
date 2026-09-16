@@ -236,7 +236,9 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 					FB2K_console_print_v("JSON error: Creating backup file...");
 
 					pfc::string8 base_bak;
-					base_bak << os_file.c_str() << ".bak";
+					pfc::string8 date_bak;
+					currentFmtDate(date_bak, "%y-%m-%d_%Hh_%Mm_%Ss");
+					base_bak << os_file.c_str() << date_bak << ".bak";
 
 					size_t posfix = 0;
 					pfc::string8 buffer_bak = base_bak;
@@ -274,8 +276,7 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 				js_fld = json_object_get(js_wobj, "guid_bm");
 				const char* dmp_str = json_string_value(js_fld);
 				if (dmp_str) {
-					pfc::string8 tmpguid = pfc::string8(dmp_str);
-					elem.guid_bm = pfc::GUID_from_text(tmpguid);
+					elem.guid_bm = pfc::GUID_from_text(dmp_str);
 				}
 				else {
 					elem.guid_bm = pfc::createGUID();
@@ -296,8 +297,7 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 				js_fld = json_object_get(js_wobj, "guid");
 				const char* dmp_str = json_string_value(js_fld);
 				if (dmp_str) {
-					pfc::string8 tmpguid = pfc::string8(dmp_str);
-					elem.guid_playlist = pfc::GUID_from_text(tmpguid);
+					elem.guid_playlist = pfc::GUID_from_text(dmp_str);
 				}
 			}
 
