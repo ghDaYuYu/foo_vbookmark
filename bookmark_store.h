@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bookmark_preferences.h"
+
 #include "bookmark_types.h"
 #include "bookmark_persistence.h"
 #include <vector>
@@ -61,20 +62,21 @@ public:
 	void _addItem(const bookmark_t rec) {
 		m_masterList.emplace_back(rec);
 	}
-
-	//todo: remove callbacks
 	void AddItem(const bookmark_t rec, std::function<void()> p_add_bookmark_callback) {
 
-		fb2k::splitTask([this, rec, p_add_bookmark_callback]() {
+		ThreadUtils::cmdThread cmdThStore;
+		cmdThStore.add([this, rec, p_add_bookmark_callback]() {
 
-			size_t c = 0; 
+			size_t c = 0;
 
 			while (c < 10) {
-			
+
 				try {
-					std::lock_guard<std::mutex> guard(m_store_lock);
-					m_is_dirty = true;
-					_addItem(rec);
+					{
+						std::lock_guard<std::mutex> guard(get_lock());
+						m_is_dirty = true;
+						_addItem(rec);
+					}
 					p_add_bookmark_callback();
 					break;
 				}
@@ -82,6 +84,10 @@ public:
 					Sleep(1000);
 					c++;
 				}
+			}
+
+			});
+	}
 
 			}
 		});
@@ -132,17 +138,17 @@ public:
 	}
 	void Remove(const bit_array_bittable p_mask, std::function<void()> p_remove_callback) {
 
-		//todo: remove callbacks
-
 		fb2k::splitTask([this, p_mask, p_remove_callback]() {
 
 			size_t c = 0;
 
 			while (c < 10) {
 				try {
-					std::lock_guard<std::mutex> guard(m_store_lock);
-					m_is_dirty = true;
-					_remove(p_mask);
+					{
+						std::lock_guard<std::mutex> guard(get_lock));
+						m_is_dirty = true;
+						_remove(p_mask);
+					}
 					p_remove_callback();
 					break;
 				}
@@ -156,7 +162,7 @@ public:
 
 	void _clear() { m_masterList.clear(); }
 	void Clear(std::function<void()> p_callback) {
-		//todo: remove callbacks
+
 		fb2k::splitTask([this, p_callback]() {
 
 			size_t c = 0;
@@ -186,10 +192,11 @@ public:
 
 	std::vector<bookmark_t> Discard_Bookmarks(std::vector<bookmark_t> master_list);
 
+	inline static std::mutex& get_lock() {
+		return bookmark_store::m_store_lock;
+	}
+
 private:
-
-	inline static std::mutex& get_lock() { return bookmark_store::m_store_lock; }
-
 
 	inline static std::mutex m_store_lock;
 	inline static bool m_nofresh = false;

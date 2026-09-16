@@ -1,5 +1,55 @@
 #include "stdafx.h"
+
+#include <map>
+
+#include "utils.h"
 #include "bookmark_store.h"
+
+bookmark_store::bookmark_store() {
+	//..
+}
+
+bookmark_store::~bookmark_store()
+{
+	//..
+}
+
+void bookmark_store::Write(bool thread_pool) {
+
+	if (!m_is_dirty) {
+		FB2K_console_print_v("Saving... nothing to do.");
+		return;
+	}
+
+	setlocale(LC_ALL, ".UTF8");
+
+	if (thread_pool) {
+
+		if (!is_cfg_Instant_Write()) {
+			FB2K_console_print_v("Saving later.");
+			return;
+		}
+
+		_write();
+
+	}
+	else {
+
+		auto work = [this] {
+			try {
+
+				this->m_persist.writeDataFileJSON(m_masterList);
+				this->m_is_dirty = false;
+				FB2K_console_print_v("Saved.");
+			}
+			catch (std::exception const&) {
+				//..
+			}
+		};
+		fb2k::splitTask(work);
+		return;
+	}
+}
 
 using bm_rev_it_type = std::vector<bookmark_t>::reverse_iterator;
 using keep_map_rev_it_type = std::map <std::string, bm_rev_it_type>::reverse_iterator;
@@ -129,59 +179,4 @@ std::vector<bookmark_t> bookmark_store::Discard_Bookmarks(std::vector<bookmark_t
 	master_list.insert(master_list.end(), back.begin(), back.end());
 
 	return master_list;
-}
-
-bookmark_store::bookmark_store() {
-	//..
-}
-
-bookmark_store::~bookmark_store()
-{
-	//..
-}
-
-void bookmark_store::Write(bool thread_pool) {
-	{
-		//todo: NoRefreshScope
-		if (m_nofresh) {
-			return;
-		}
-
-		if (!m_is_dirty) {
-			FB2K_console_print_v("Saving... nothing to do.");
-			return;
-		}
-	}
-
-	//not thread safe
-	setlocale(LC_ALL, ".UTF8");
-	//
-
-	if (thread_pool) {
-
-		if (!is_cfg_Instant_Write()) {
-			FB2K_console_print_v("Saving later.");
-			return;
-		}
-
-		_write();
-	}
-	else {
-
-		//app close blocker splitTask
-
-		auto work = [this] {
-			try {
-
-				this->m_persist.writeDataFileJSON(m_masterList);
-				this->m_is_dirty = false;
-				FB2K_console_print_v("Saved.");
-			}
-			catch (std::exception const&) {
-				//..
-			}
-		};
-		fb2k::splitTask(work);
-		return;
-	}
 }

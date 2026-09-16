@@ -11,9 +11,8 @@ namespace {
 
 		virtual void on_init() {
 
-			//todo: remove callbacks
-			std::function add_bookmark_callback([](/) {
-				//todo: NoRefreshScope
+			std::function add_bookmark_callback([]() {
+
 				bookmark_store::set_no_refresh(false);
 
 				fb2k::inMainThread([]() {
@@ -95,11 +94,6 @@ namespace {
 								(*it)->ShowScrollBar(SB_VERT, true);
 								(*it)->Invalidate(true);
 							}
-
-							ThreadUtils::cmdThread cmd_set; cmd_set.add([]() {
-								//todo: NoRefreshScope
-								Sleep(100);
-								});
 							});
 					}
 					}));
@@ -115,7 +109,7 @@ namespace {
 				if (g_bmAuto.checkDummy()) {
 
 					g_store.AddItem(g_bmAuto.getDummy(),
-						//todo: remove callbacks
+						//callback
 						std::function<void()>([]() { g_store.Write(false); }));
 				}
 				//

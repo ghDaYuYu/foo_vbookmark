@@ -16,7 +16,6 @@ namespace dlg {
 
 	size_t ILOD_BookmarkSource::listGetItemCount(ctx_t) {
 		try {
-			//todo: NoRefreshScope
 			return g_store.Size();
 		}
 		catch (...) {
@@ -127,26 +126,24 @@ namespace dlg {
 		}
 
 		g_bmAuto.checkDeletedRestoredDummy(new_mask, oldCount);
-		
-		//todo: remove callbacks
+
 		g_store.Remove(new_mask, std::function<void()>([ctx, new_mask, oldCount]() {
 
-		//Update all guiLists
+			//Update all guiLists
 
-		g_store.Write();
+			g_store.Write();
 
-		fb2k::inMainThread([ctx, new_mask, oldCount]() {
+			fb2k::inMainThread([ctx, new_mask, oldCount]() {
 
-			for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
-				if ((*it) != ctx) {
+				for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
 					(*it)->OnItemsRemoved(new_mask, oldCount);
 				}
-			}
 
-			CListCtrlMarkDialog::UI_CancelListEdits();
+				CListCtrlMarkDialog::UI_CancelListEdits();
 
-			});
-		}));
+				});
+
+			}));
 
 		return true;
 	}

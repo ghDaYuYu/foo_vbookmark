@@ -21,12 +21,40 @@ bookmark_persistence::~bookmark_persistence()
 
 //replaces the contents of masterList with the contents of the persistent file
 
-void bookmark_persistence::replaceMasterList(std::vector<bookmark_t>& newContent, std::vector<bookmark_t>& masterList) {
+void bookmark_persistence::replaceMasterList(std::vector<bookmark_t>& newContent, std::vector<bookmark_t>& masterList, bool ordered, std::function<void()> p_callback) {
 
 	FB2K_console_print_v("Replacing cache");
 
-	masterList.clear();
-	masterList.insert(masterList.begin(), newContent.begin(), newContent.end());
+	fb2k::splitTask([&masterList, newContent, ordered, p_callback]() {
+
+		size_t c = 0;
+
+		while (c < 10) {
+
+			try {
+				{
+					pfc::string8 owner;
+					std::lock_guard<std::mutex> guard(bookmark_store::get_lock("ReplaceMasterList", owner));
+					//remove loading...
+					masterList.erase(masterList.begin());
+					//masterList.resize(masterList.size() - 1);
+					if (!ordered) {
+						masterList.insert(masterList.end(), newContent.begin(), newContent.end());
+					}
+					else {
+						masterList.insert(masterList.begin(), newContent.begin(), newContent.end());
+					}
+				}
+				p_callback();
+				break;
+			}
+			catch (...) {
+				Sleep(1000);
+				c++;
+			}
+
+		}
+		});
 }
 
 std::filesystem::path bookmark_persistence::genFilePath() {
@@ -78,11 +106,10 @@ void add_rec(std::vector<json_t*> &vjson, const std::vector<pfc::string8>& vlbl,
 }
 
 void bookmark_persistence::writeDataFile(const std::vector<bookmark_t>& masterList,
-		std::function<void(std::lock_guard<std::mutex>* p_guard)> sf_write_callback, std::lock_guard<std::mutex>* p_guard) {
-	
-	cmdThFile.add([this, &masterList, sf_write_callback, p_guard] {
-		bool res = writeDataFileJSON(masterList);
-		if (res) sf_write_callback(p_guard);
+		std::function<void()> sf_write_callback) {
+			cmdThFile.add([this, &masterList, sf_write_callback] {
+			bool res = writeDataFileJSON(masterList);
+			if (res) sf_write_callback();
 		});
 }
 
@@ -196,8 +223,8 @@ bool bookmark_persistence::writeDataFileJSON(const std::vector<bookmark_t>& mast
 	return bres;
 }
 
-//restore masterList from persistent storage
-bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList) {
+//restore masterList from persistent storage (initquit)
+bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList, bool ordered, std::function<void()> p_callback) {
 
 	FB2K_console_print_v("Reading bookmarks from file");
 
@@ -430,7 +457,7 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 
 	FB2K_console_print_v("Restored ", std::to_string(clines).c_str(), " bookmarks from file");
 
-	replaceMasterList(temp_data, masterList);
+	replaceMasterList(temp_data, masterList, ordered, p_callback);
 
 	return true;
 }

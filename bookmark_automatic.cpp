@@ -823,16 +823,24 @@ bool bookmark_automatic::upgradeDummy(const metadb_handle_ptr p_pmh_now_playing,
 				return false;
 			}
 
-			g_store.AddItem(std::move(bookmark_t(dummy)));
-			g_store.Write();
+			g_store.AddItem(std::move(bookmark_t(dummy)),
+				//callback
+				std::function<void()>([this, guiLists]() {
 
-			FB2K_console_print_v("Dummy stored");
-		}
+					g_store.Write();
 
-		//UI update
-		if (!bshutting_down) {
-			bool bscroll_list = cfg_autosave_focus_newtrack.get();
-			refresh_ui(bscroll_list, bscroll_list, guiLists);
+					FB2K_console_print_v("Dummy stored");
+
+					fb2k::inMainThread([this, guiLists]() {
+						//UI
+						bool bscroll_list = cfg_autosave_focus_newtrack.get();
+
+						refresh_ui(bscroll_list, bscroll_list, guiLists);
+						});
+				}));
+
+			return true;
+
 		}
 	}
 	else {
@@ -890,54 +898,61 @@ void bookmark_automatic::checkDeletedRestoredDummy(const bit_array& mask, size_t
 
 void bookmark_automatic::refresh_ui(bool bselect, bool bensure_visible, std::list< dlg::CListControlBookmark*> guiLists) {
 
-	for (auto it = guiLists.begin(); it != guiLists.end(); ++it) {
+	fb2k::inMainThread([bselect, bensure_visible, guiLists]() {
 
-		dlg::CListControlBookmark* lc = *it;
+		for (auto it = guiLists.begin(); it != guiLists.end(); ++it) {
 
-		if (lc->TableEdit_IsActive()) {
-			lc->TableEdit_Abort(false);
+			dlg::CListControlBookmark* lc = *it;
+
+			if (lc->TableEdit_IsActive()) {
+				lc->TableEdit_Abort(false);
+			}
+
+			size_t item = lc->GetItemCount() - 1;
+			if (lc->GetSortOrder()) {
+				item = 0;
+			}
+
+			if (bselect) {
+				lc->SelectNone();
+			}
+			lc->OnItemsInserted(item, 1, bselect);
+			if (bselect || bensure_visible) {
+				lc->EnsureItemVisible(item, false);
+			}
+			if (bselect) {
+				lc->SetFocusItem(item);
+			}
 		}
 
-		size_t item = lc->GetItemCount() - 1;
-		if (lc->GetSortOrder()) {
-			item = 0;
-		}
-
-		if (bselect) {
-			lc->SelectNone();
-		}
-		lc->OnItemsInserted(item, 1, bselect);
-		if (bselect || bensure_visible) {
-			lc->EnsureItemVisible(item, false);
-		}
-		if (bselect) {
-			lc->SetFocusItem(item);
-		}
-	}
+		});
 }
 
 void bookmark_automatic::delete_item_ui(size_t index, std::list< dlg::CListControlBookmark*> guiLists) {
 
-	for (auto it = guiLists.begin(); it != guiLists.end(); ++it) {
+	fb2k::inMainThread([index, guiLists]() {
 
-		bit_array_bittable changeMask(bit_array_false(), g_primaryGuiList->GetItemCount());
+		for (auto it = guiLists.begin(); it != guiLists.end(); ++it) {
 
-		size_t new_pos = index;
-		if ((*it)->GetSortOrder()) {
-			if (index >= (*it)->GetItemCount()) {
-				index = 0;
+			bit_array_bittable changeMask(bit_array_false(), g_primaryGuiList->GetItemCount());
+
+			size_t new_pos = index;
+			if ((*it)->GetSortOrder()) {
+				if (index >= (*it)->GetItemCount()) {
+					new_pos = 0;
+				}
+				else {
+					new_pos = (*it)->GetItemCount() - index;
+				}
 			}
-			else {
-				index = (*it)->GetItemCount() - index;
+			auto isel = (*it)->GetSingleSel();
+			if ((*it)->GetSingleSel() == new_pos) {
+				if ((*it)->TableEdit_IsActive()) {
+					(*it)->TableEdit_Abort(false);
+				}
 			}
+			(*it)->SelectNone();
+			(*it)->OnItemRemoved(new_pos);
 		}
-		auto isel = (*it)->GetSingleSel();
-		if ((*it)->GetSingleSel() == index) {
-			if ((*it)->TableEdit_IsActive()) {
-				(*it)->TableEdit_Abort(false);
-			}
-		}
-		(*it)->SelectNone();
-		(*it)->OnItemRemoved(index);
-	}
+	});
 }

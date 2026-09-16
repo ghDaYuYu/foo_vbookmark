@@ -249,39 +249,41 @@ namespace dlg {
 		}
 
 		static void UI_UpdateNewBookmarks() {
-
-			try {
-				std::unique_lock<std::mutex> lock_guard(bookmark_store::get_lock());
-
-				// UI
-				std::lock_guard<std::mutex> ui_guard(m_mx_UI_Add_Bookmark_Refresh);
-
-				fb2k::inMainThread([&lock_guard]() {
-
-					CListCtrlMarkDialog::UI_CancelListEdits();
-
-					try {
-
-						CListCtrlMarkDialog::UI_OnItemsInserted();
-
-						lock_guard.release();
-
+			size_t c = 0;
+			while (c < 10) {
+				try {
+					{
+						pfc::string8 owner;
+						std::unique_lock<std::mutex> lock_guard(bookmark_store::get_lock("UI_UpdateNewBookmarks", owner));
+	
+						// UI
+						std::lock_guard<std::mutex> ui_guard(m_mx_UI_Add_Bookmark_Refresh);
+	
+							CListCtrlMarkDialog::UI_CancelListEdits();
+	
+							try {
+	
+								CListCtrlMarkDialog::UI_OnItemsInserted();
+	
+								lock_guard.unlock();
+								lock_guard.release();
+	
+							}
+							catch (...) {
+								lock_guard.unlock();
+								lock_guard.release();
+							}
 					}
-					catch (...) {
-
-						lock_guard.release();
-
-					}
-
-					});
-
-			}
-			catch (...) {
-				//
-				return;
-				//
-			}
-
+					break;
+				}
+				catch (...) {
+					c++;
+					Sleep(100);
+					//
+					return;
+					//
+				}
+			} //while
 		}
 
 		//context menu and toolbar
@@ -358,32 +360,45 @@ namespace dlg {
 
 			std::function add_bookmark_callback([](double p_pos, bookmark_t p_bm) {
 				p_bm.set_exact_time(p_pos);
-				bookmark_worker bmWorker;
-				bmWorker.store(p_bm, true);
 
-				FB2K_console_print_v("New bookmark stored.");
-				g_store.Write();
+				fb2k::inMainThread([p_pos, p_bm]() {
 
-				UpdateUINewBookmarks();
+					bookmark_worker bmWorker;
+					bmWorker.store(p_bm,
+						//callback
+						std::function<void()>([]() { 
 
-			});
+							FB2K_console_print_v("New bookmark stored.");
 
-			ThreadUtils::cmdThread cmd;
-			cmd.add([pmh_now_playing, pos, add_bookmark_callback] {
-				bookmark_t tbm;
-				size_t counter = 0;
-				do {
-					counter++;
-					if (tbm.get_time()) {
-						Sleep(100);
-					}
+							g_store.Write();
 
-					g_bmAuto.updateDummy(pmh_now_playing);
+							// UI
+							UI_UpdateNewBookmarks();
+							}), true);
 
-					tbm = g_bmAuto.getDummy();
-				} while (!tbm.playlist.get_length() && counter < 4);
-				add_bookmark_callback(pos, tbm);
-			});
+						});
+				});
+
+				ThreadUtils::cmdThread cmd;
+				cmd.add([pmh_now_playing, pos, add_bookmark_callback] {
+
+					bookmark_t tbm;
+					size_t counter = 0;
+					do {
+						counter++;
+						if (tbm.get_time()) {
+							Sleep(100);
+						}
+
+						g_bmAuto.updateDummy(pmh_now_playing);
+
+
+						tbm = g_bmAuto.getDummy();
+
+					} while (!tbm.playlist.get_length() && counter < 4);
+
+					add_bookmark_callback(pos, tbm);
+				});
 		}
 
 		static void clearBookmarks() {

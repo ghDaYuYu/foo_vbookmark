@@ -15,13 +15,13 @@ public:
 
 	void writeDataFile(const std::vector<bookmark_t>& masterList, std::function<void()> sf_write_callback);
 	//Stores the content of g_masterList in a persistent file
-	bool readDataFileJSON(std::vector<bookmark_t>& masterList);
+	bool readDataFileJSON(std::vector<bookmark_t>& masterList, bool ordered, std::function<void()> p_callback);
 	//Stores the contents of g_masterList in a persistent file
 	bool writeDataFileJSON(const std::vector<bookmark_t>& masterList);
 
 private:
 
-	static void replaceMasterList(std::vector<bookmark_t>& newContent, std::vector<bookmark_t>& masterList);
+	static void replaceMasterList(std::vector<bookmark_t>& newContent, std::vector<bookmark_t>& masterList, bool ordered, std::function<void()> p_callback);
 
 	std::filesystem::path bookmark_persistence::genFilePath();
 };
