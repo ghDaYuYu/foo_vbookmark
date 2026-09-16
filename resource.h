@@ -58,6 +58,13 @@
 #define IDC_RQ_WAIT_LBL                 1071
 #define IDC_PREF_2_KEEP_TAIL_COUNT      1072
 #define IDC_STATIC_INFO                 1073
+#define IDC_PREF_2_BTT_CLEAN_UP         1074
+#define IDC_PREF_2_KEEP_SEEK_FLAG       1075
+#define IDC_PREF_2_KEEP_TAIL_FLAG       1076
+#define IDC_PREF_2_KEEP_COM_PREFIX_FLAG 1077
+#define IDC_PREF_2_KEEP_COM_PREFIX      1078
+#define IDC_PREF_2_KEEP_HIDDEN_FLAG     1079
+#define IDC_PREF_2_KEEP_CREATE_BACKUP_FLAG 1082
 
 // Next default values for new objects
 // 
