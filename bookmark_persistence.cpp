@@ -23,7 +23,7 @@ bookmark_persistence::~bookmark_persistence()
 
 void bookmark_persistence::replaceMasterList(std::vector<bookmark_t>& newContent, std::vector<bookmark_t>& masterList, bool ordered, std::function<void()> p_callback) {
 
-	FB2K_console_print_v("Replacing cache");
+	FB2K_console_print_v("Checking pre-load items");
 
 	fb2k::splitTask([&masterList, newContent, ordered, p_callback]() {
 
@@ -36,8 +36,12 @@ void bookmark_persistence::replaceMasterList(std::vector<bookmark_t>& newContent
 					pfc::string8 owner;
 					std::lock_guard<std::mutex> guard(bookmark_store::get_lock("ReplaceMasterList", owner));
 					//remove loading...
-					masterList.erase(masterList.begin());
-					//masterList.resize(masterList.size() - 1);
+					if (masterList.size()) {
+						if (masterList.at(0).get_desc().equals("loading")) {
+							masterList.erase(masterList.begin());
+						}
+					}
+
 					if (!ordered) {
 						masterList.insert(masterList.end(), newContent.begin(), newContent.end());
 					}
@@ -225,6 +229,8 @@ bool bookmark_persistence::writeDataFileJSON(const std::vector<bookmark_t>& mast
 
 //restore masterList from persistent storage (initquit)
 bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList, bool ordered, std::function<void()> p_callback) {
+
+	bool bres = true;
 
 	FB2K_console_print_v("Reading bookmarks from file");
 
@@ -444,21 +450,21 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList,
 		if (jf != -1) {
 			_close(jf);
 		}
-		FB2K_console_print_e("Reading data from file failed", e);
-		return false;
+		FB2K_console_print_e("Reading data from file failed: ", e);
+		bres = false;
 	}
 	catch (...) {
 		if (jf != -1) {
 			_close(jf);
 		}
-		FB2K_console_print_e("Reading data from file failed:", " Unhandled Exception");
-		return false;
+		FB2K_console_print_e("Reading data from file failed: ", "Unhandled Exception");
+		bres = false;
 	}
 
 	FB2K_console_print_v("Restored ", std::to_string(clines).c_str(), " bookmarks from file");
 
 	replaceMasterList(temp_data, masterList, ordered, p_callback);
 
-	return true;
+	return bres;
 }
 

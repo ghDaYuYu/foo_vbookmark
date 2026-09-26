@@ -23,5 +23,5 @@ private:
 
 	static void replaceMasterList(std::vector<bookmark_t>& newContent, std::vector<bookmark_t>& masterList, bool ordered, std::function<void()> p_callback);
 
-	std::filesystem::path bookmark_persistence::genFilePath();
+	std::filesystem::path genFilePath();
 };

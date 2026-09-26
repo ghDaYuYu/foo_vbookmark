@@ -165,7 +165,7 @@ std::vector<bookmark_t> bookmark_store::Discard_Bookmarks(std::vector<bookmark_t
 		bool pre_cond = (keep_comment_prefix.get_length() && bm.get_comment().startsWith(keep_comment_prefix)) ||
 				(keep_non_radio_seek && !bm.isRadio() && bm.get_time() != 0.0);
 		
-		if (!pre_cond && ((c_removed < to_remove && !(bool)bm.guid_playlist.Data1) || bm.subsong == 9999)) {
+		if (!pre_cond && ((c_removed < static_cast<size_t>(to_remove) && !(bool)bm.guid_playlist.Data1) || bm.subsong == 9999)) {
 			c_removed++;
 			return true;
 		}
