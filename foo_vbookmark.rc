@@ -189,32 +189,32 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,146,149,10
     EDITTEXT        IDC_AUTOSAVE_TRACK_FILTER,4,159,311,37,ES_MULTILINE | WS_VSCROLL
     PUSHBUTTON      "Add active",IDC_BUTTON_AUTO_ADD_ACTIVE_PLAYLIST,265,142,50,14
-    LTEXT           "Audacity pipeline:",IDC_STATIC_DEST_REC,5,219,58,8
-    EDITTEXT        IDC_EDIT_REC_DST,4,231,168,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "...",IDC_BUTTON_DST_REC,174,231,12,14
 END
 
 IDD_DIALOG_CONF_2 DIALOGEX 0, 0, 319, 270
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
+    PUSHBUTTON      "Discard bookmarks",IDC_PREF_2_BTT_CLEAN_UP,27,129,85,14
     CONTROL         "Verbose console log",IDC_VERBOSE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,227,129,78,10
-    PUSHBUTTON      "Discard bookmarks",IDC_PREF_2_BTT_CLEAN_UP,27,155,85,14
-    CONTROL         "Callback monitor (needed auto-creation)",IDC_MONITOR,
+    CONTROL         "Callback monitor (req. for auto-creation)",IDC_MONITOR,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,163,143,147,10
-    LTEXT           "Preserve:",IDC_STATIC,12,174,32,8
-    EDITTEXT        IDC_PREF_2_KEEP_HIDDEN_FLAG,124,172,12,14,ES_AUTOHSCROLL | NOT WS_VISIBLE
-    CONTROL         "Tail (10..1K):",IDC_PREF_2_KEEP_TAIL_FLAG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,188,56,10
-    EDITTEXT        IDC_PREF_2_KEEP_TAIL_COUNT,78,186,23,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Preserve:",IDC_STATIC,12,148,32,8
+    EDITTEXT        IDC_PREF_2_KEEP_HIDDEN_FLAG,52,146,12,14,ES_AUTOHSCROLL | NOT WS_VISIBLE
+    CONTROL         "Tail (10..2K):",IDC_PREF_2_KEEP_TAIL_FLAG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,162,56,10
+    EDITTEXT        IDC_PREF_2_KEEP_TAIL_COUNT,78,160,23,14,ES_AUTOHSCROLL | ES_NUMBER
     CONTROL         "Non-radio with seek Time > 00:00",IDC_PREF_2_KEEP_SEEK_FLAG,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,203,128,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,177,128,10
     CONTROL         "With Comments prefixed by:",IDC_PREF_2_KEEP_COM_PREFIX_FLAG,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,217,106,10
-    EDITTEXT        IDC_PREF_2_KEEP_COM_PREFIX,129,215,86,14,ES_AUTOHSCROLL
-    LTEXT           "$",IDC_STATIC_INFO,7,10,303,114
-    LTEXT           "Note: Sort by date column to preview tail before discarding bookmarks. After the tail, the latest bookmark per playlist will also be preserved.\n",IDC_STATIC,12,247,269,19
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,191,106,10
+    EDITTEXT        IDC_PREF_2_KEEP_COM_PREFIX,129,189,86,14,ES_AUTOHSCROLL
     CONTROL         "Back up current bookmarks",IDC_PREF_2_KEEP_CREATE_BACKUP_FLAG,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,232,102,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,206,102,10
+    LTEXT           "Note: Sort by date column to preview tail before discarding bookmarks. After the tail, the latest bookmark per playlist will also be preserved.\n",IDC_STATIC,12,221,269,19
+    LTEXT           "Audacity pipeline:",IDC_STATIC_DEST_REC,12,241,58,8
+    EDITTEXT        IDC_EDIT_REC_DST,12,253,168,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_BUTTON_DST_REC,182,253,12,14
+    LTEXT           "$",IDC_STATIC_INFO,7,10,303,114
 END
 
 

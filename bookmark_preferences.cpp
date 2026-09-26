@@ -366,6 +366,15 @@ LRESULT CBookmarkPreferences::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*
 
 	cfg_header_click_block_flag = default_cfg_header_click_block_flag;
 
+	cfg_txt_filter = default_cfg_txt_filter;
+	cfg_tf_filter = default_cfg_tf_filter;
+
+	cfg_rq_wait = default_cfg_rq_wait;
+
+	cfg_cu_keep_tail_count = default_cfg_cu_keep_tail_count;
+	cfg_cu_keep_com_prefix = default_cfg_cu_keep_com_prefix;
+	cfg_cu_keep_flag = default_cfg_cu_keep_flag;
+
 #ifdef REC_AUDIO
 	cfg_dst_rec_path = default_cfg_dst_rec_path;
 #endif
@@ -720,7 +729,7 @@ void CBookmarkPreferences::save_config_2_dialog(HWND wnd) {
 
 	pfc::string8 buffer;
 	buffer = uGetDlgItemText(wnd, eat_cu_tail_count.idc);
-	if (atoi(buffer) >= 10 && atoi(buffer) <= 1000) {
+	if (atoi(buffer) >= 10 && atoi(buffer) <= 2000) {
 		uiToCfg(wnd, eat_cu_tail_count);
 	}
 	else {
@@ -1051,7 +1060,7 @@ INT_PTR WINAPI CBookmarkPreferences::on_config_2_dialog_message(HWND wnd, UINT m
 						}
 
 						bookmark_store bs;
-						auto new_list = bs.Discard_Bookmarks(g_store.GetMasterList(), false);
+						auto new_list = bs.Discard_Bookmarks(g_store.GetMasterList());
 
 						CYesNoApiDialog yndlg;
 

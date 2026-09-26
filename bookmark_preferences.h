@@ -160,7 +160,7 @@ static const pfc::string8 default_cfg_tf_filter = "$if($or($strstr(%title%,ANEWS
 
 static const int default_cfg_last_tab = 0;
 
-static const pfc::string8 default_cfg_cu_keep_tail_count = "100";
+static const pfc::string8 default_cfg_cu_keep_tail_count = "1000";
 static const pfc::string8 default_cfg_cu_keep_com_prefix = "";
 
 static const int default_cfg_cu_keep_flag = KEEP_TAIL_FLAG | KEEP_SEEK_FLAG | KEEP_CREATE_BACKUP_FLAG;
