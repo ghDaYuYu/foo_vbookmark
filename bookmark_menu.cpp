@@ -33,8 +33,8 @@ public:
 	size_t last_played = SIZE_MAX;
 
 	enum {
-		cmd_store_selected = 0,
-		cmd_store,
+		cmd_store = 0,
+		cmd_store_selected,
 		cmd_restore,
 		cmd_restoreActivePlaylistLastPlayed,
 		cmd_clearBookmarks,
