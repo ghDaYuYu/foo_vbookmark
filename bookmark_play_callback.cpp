@@ -24,7 +24,9 @@ namespace {
 				//.. reset in time event
 			}
 			else {
-				g_bmAuto.ResetRestoredDummy();
+				if (p_reason != play_control::t_stop_reason::stop_reason_starting_another) {
+					g_bmAuto.ResetRestoredDummy();
+				}
 			}
 			g_bmAuto.resetDummyAll();
 			g_bmAuto.updateDummy(nullptr);
