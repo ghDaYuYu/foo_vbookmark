@@ -1,0 +1,17 @@
+Software Requirements:
+
+- Audacity
+- Audacity->Edit->Preferences->Modules->mod-script-pipe->Enabled
+- ffmpeg and python and 'ffmpeg' and 'python' in the environment path
+- Foobar 2000 v2
+- Vital Bookmarks version >= v1.8 alpha
+- Download the foo_vbookmarks audacity pipeclient script file vap_cli.py from https://gist.github.com/ghuDaYuYu/4e6086e605a006f7d788cdef77fadd7e
+- Create a new destination folder for audio recordings, create a new subfolder '_scripts'. Place vital_audacity_pipeclient.py inside '_scripts'
+- Launch Foobar 2000, install foo_vbookmarks alpha.
+- Open the component preference page. In Other preferences, set the Python pipeline file location
+- Add Vital Bookmarks to the Foobar 2000 UI layout
+
+Using the Audacity pipeline:
+
+- Launch Audacity from the command line.
+- Use the Vital Bookmarks context menu options, key shortcuts or the main menu/command bar to start and stop recording.
