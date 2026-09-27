@@ -757,8 +757,8 @@ bool bookmark_automatic::upgradeDummy(const metadb_handle_ptr p_pmh_now_playing,
 
 			//rev. more renames
 
-			bool brev_start = dummy.get_time() < 2 * KMin_Lapse;
-			bool brev_time = abs(rit->get_time() - dummy.get_time()) <= 2 * KMin_Lapse;
+			bool brev_start = dummy.get_time() < 2 * kMin_Lapse;
+			bool brev_time = abs(rit->get_time() - dummy.get_time()) <= 2 * kMin_Lapse;
 			bool brev_path_guid_subsong = rit->path.equals(dummy.path) && pfc::guid_equal(rit->guid_playlist, dummy.guid_playlist);
 			brev_path_guid_subsong = brev_path_guid_subsong && rit->subsong == dummy.subsong;
 			bool brev_desc_or_radio = !dummy.isRadio() || (rit->get_desc().equals(dummy.get_desc()));

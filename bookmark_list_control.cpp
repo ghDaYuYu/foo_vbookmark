@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include <regex>
 #include <iomanip>
 
@@ -358,6 +358,9 @@ namespace dlg {
 
 			pfc::string8 buffer(val);
 			bookmark_t rec = g_store.GetItem(item);
+			if (!stricmp_utf8(rec.get_desc(), kLoading)) {
+				return;
+			}
 			if (!stricmp_utf8(buffer, rec.get_desc())) {
 				rec.set_name("");
 			}

@@ -74,7 +74,9 @@ public:
 				try {
 					{
 						std::lock_guard<std::mutex> guard(get_lock());
-						m_is_dirty = true;
+						if (!rec.get_desc().equals(kLoading)) {
+							m_is_dirty = true;
+						}
 						_addItem(rec);
 					}
 					p_add_bookmark_callback();

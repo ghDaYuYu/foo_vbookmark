@@ -10,8 +10,9 @@
 #define LOC_RETRIES 3
 
 inline static const int kUI_CONF_VER = 2;
-inline constexpr double KMin_Lapse = 2.0;
+inline constexpr double kMin_Lapse = 2.0;
 inline constexpr double kRestoredLapse = 4.0;
+inline constexpr char kLoading[] = "loading";
 
 struct bookmark_t {
 
@@ -41,7 +42,7 @@ public:
 
 	void set_rt_time(double t) {
 		t = (std::max)(0.0, t);
-		time = t < KMin_Lapse ? 0.0 : t;
+		time = t < kMin_Lapse ? 0.0 : t;
 	}
 	void set_time(double t, bool exact_time = false)) {
 		if (exact_time) {
@@ -49,7 +50,7 @@ public:
 			return;
 		}
 		t = (std::max)(0.0, t);
-		time = t < KMin_Lapse ? 0.0 : t;
+		time = t < kMin_Lapse ? 0.0 : t;
 	}
 
 	void set_exact_time(double t) {

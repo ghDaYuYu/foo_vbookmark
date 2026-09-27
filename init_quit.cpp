@@ -81,7 +81,7 @@ namespace {
 				}
 
 				bookmark_t bm_loading;
-				bm_loading.set_desc("loading");
+				bm_loading.set_desc(kLoading);
 				bm_loading.set_current_date();
 				g_store.AddItem(bm_loading, std::function<void()>([]() {
 					if (GetPrimaryGuiList()) {
