@@ -69,6 +69,8 @@ namespace {
 							}
 						}
 					}
+					pfc::string8 msg = PFC_string_formatter() << std::to_string(cmaster).c_str() << " loaded in " << bookmark_store::get_timer().queryString();
+					FB2K_console_print_i("Bookmarks initialized: ", msg);
 				});
 				});
 
