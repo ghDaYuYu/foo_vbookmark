@@ -722,7 +722,7 @@ namespace dlg {
 					}
 					menu.AppendMenu(MF_STRING | (!bupdatable || !bresetable_playlist ? MF_DISABLED | MF_GRAYED : 0), ID_RESET_PLAYLIST, L"Reset pla&ylist");
 					menu.AppendMenu(MF_STRING | (!bupdatable || !bresetable_comment ? MF_DISABLED | MF_GRAYED : 0), ID_RESET_COMMENT, L"Reset co&mment");
-					menu.AppendMenu(MF_STRING, ID_REFRESH_DESC, L"Refres&h bookmark description format");
+					menu.AppendMenu(MF_STRING | (!csel ? MF_DISABLED | MF_GRAYED : 0), ID_REFRESH_DESC, L"Refres&h bookmark format");
 					menu.AppendMenu(MF_SEPARATOR);
 
 					InsertMenuItem(menu, submenus_ids[0], true, &submenu_infos[0]);
