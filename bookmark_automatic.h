@@ -57,10 +57,10 @@ public:
 
 	void updateDummyTime();
 	void updateDummy(const metadb_handle_ptr p_pmh_now_playing);
-#ifdef REC_AUDIO
+
 	bool IsRecording(bool start, pfc::string8 path/*, pfc::string8 artist, pfc::string8 title*/);
 	void StartRecording(std::list< dlg::CListControlBookmark*> guiLists, bool start, pfc::string8 path);
-#endif
+
 	bool upgradeDummy(const metadb_handle_ptr pmh_now_playing, std::list< dlg::CListControlBookmark*> guiList);
 
 	void ResetRestoredDummy();

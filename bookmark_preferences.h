@@ -91,6 +91,7 @@ extern cfg_string cfg_cu_keep_com_prefix;
 
 extern cfg_int cfg_cu_keep_flag;
 
+extern cfg_string cfg_dst_rec_path;
 
 inline bool is_cfg_Bookmarking() { return !(cfg_status_flag.get_value() & STATUS_PAUSED_FLAG); }
 
@@ -231,6 +232,7 @@ private:
 	ectrlAndString_t eat_cu_prefix;
 	boxAndInt_t bai_cu_flag;
 
+	ectrlAndString_t eat_dst_rec_path;
 
 	void InitCfgUIPairs() {
 		eat_format = { IDC_TITLEFORMAT, &cfg_desc_format, default_cfg_bookmark_desc_format };
@@ -269,6 +271,8 @@ private:
 		eat_cu_tail_count = { IDC_PREF_2_KEEP_TAIL_COUNT, &cfg_cu_keep_tail_count, default_cfg_cu_keep_tail_count };
 		eat_cu_prefix = { IDC_PREF_2_KEEP_COM_PREFIX, &cfg_cu_keep_com_prefix, default_cfg_cu_keep_com_prefix };
 		bai_cu_flag = { IDC_PREF_2_KEEP_HIDDEN_FLAG, &cfg_cu_keep_flag, default_cfg_cu_keep_flag };
+
+		eat_dst_rec_path = { IDC_EDIT_REC_DST, &cfg_dst_rec_path, default_cfg_dst_rec_path };
 
 	}
 

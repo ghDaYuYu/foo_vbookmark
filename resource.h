@@ -67,6 +67,10 @@
 #define IDC_PREF_2_KEEP_CREATE_BACKUP_FLAG 1082
 
 // Next default values for new objects
+#define IDC_STATIC_DEST_REC             1051
+#define IDC_EDIT_REC_DST                1052
+#define IDC_BUTTON_DST_REC              1053
+
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
