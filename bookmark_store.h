@@ -35,9 +35,11 @@ public:
 
 	//todo: remove callbacks
 	bool Initialize(bool ordered, std::function<void()> p_callback) {
-
+		std::unique_lock<std::mutex> ulock(get_init_lock());
 		m_is_dirty = false;
-		return m_persist.readDataFileJSON(m_masterList, ordered, p_callback);
+		bres = m_persist.readDataFileJSON(m_masterList, ordered, p_callback);
+		ulock.unlock();
+		ulock.release();
 	}
 
 	const bookmark_t _getItem(size_t pos) {
@@ -147,7 +149,7 @@ public:
 		};
 
 		try {
-			std::lock_guard<std::mutex> guard(m_store_lock);
+			std::lock_guard<std::mutex> guard(get_lock());
 			m_persist.writeDataFile(m_masterList, write_callback);
 		}
 		catch (...) {
@@ -171,7 +173,7 @@ public:
 			while (c < 10) {
 				try {
 					{
-						std::lock_guard<std::mutex> guard(get_lock));
+						std::lock_guard<std::mutex> guard(get_lock());
 						m_is_dirty = true;
 						_remove(p_mask);
 					}
@@ -221,10 +223,15 @@ public:
 	inline static std::mutex& get_lock() {
 		return bookmark_store::m_store_lock;
 	}
+	
+	inline static std::mutex& get_init_lock() {
+	 	return bookmark_store::m_init_lock;
+	}
 
 private:
 
 	inline static std::mutex m_store_lock;
+	inline static std::mutex m_init_lock;
 	inline static bool m_nofresh = false;
 
 	std::vector<bookmark_t> m_masterList;

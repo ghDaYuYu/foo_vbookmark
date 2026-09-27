@@ -104,19 +104,33 @@ namespace {
 
 		virtual void on_quit() {
 
-			if (is_cfg_Bookmarking() && cfg_autosave_on_quit.get()) {
+			try {
+				std::unique_lock<std::mutex> ulock{ bookmark_store::get_init_lock(), std::defer_lock};
+				if (!ulock.try_lock()) {
+					FB2K_console_print_e("Skipping save", "on_quit() before initialization");
+					//
+					return;
+					//
+				}
+				ulock.unlock();
+				ulock.release();
 
-				if (g_bmAuto.checkDummy()) {
-
-					g_store.AddItem(g_bmAuto.getDummy(),
+				if (is_cfg_Bookmarking() && cfg_autosave_on_quit.get()) {
+					if (g_bmAuto.checkDummy()) {
+						g_store.AddItem(g_bmAuto.getDummy(),
 						//callback
 						std::function<void()>([]() { g_store.Write(false); }));
+					}
+					//
+					return;
+					//
 				}
-				//
-				return;
-				//
+
+				g_store.Write(false);
 			}
-			g_store.Write(false);
+			catch (std::system_error e) {
+				return;
+			}
 		}
 	};
 
