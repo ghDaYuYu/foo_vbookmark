@@ -42,7 +42,7 @@ public:
 		{
 			std::unique_lock<std::mutex> ulock(get_init_lock());
 			m_is_dirty = false;
-			bres = m_persist.readDataFileJSON(m_masterList, ordered, p_callback);
+			bres = m_persist.readDataFileJSON(m_masterList, ordered, p_callback, get_abort_callback());
 			ulock.unlock();
 			ulock.release();
 		}
@@ -235,6 +235,10 @@ public:
 	 	return bookmark_store::m_init_lock;
 	}
 
+	inline static abort_callback_impl& get_abort_callback() {
+		return bookmark_store::m_abort_callback;
+	}
+
 	inline static pfc::hires_timer get_timer() {
 		return m_init_timer;
 	}
@@ -243,6 +247,8 @@ private:
 
 	inline static std::mutex m_store_lock;
 	inline static std::mutex m_init_lock;
+	inline static abort_callback_impl m_abort_callback;
+	inline static bool m_nofresh = false;
 	inline static pfc::hires_timer m_init_timer;
 	inline static bool m_nofresh = false;
 

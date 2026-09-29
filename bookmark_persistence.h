@@ -15,7 +15,7 @@ public:
 
 	void writeDataFile(const std::vector<bookmark_t>& masterList, std::function<void()> sf_write_callback);
 	//Stores the content of g_masterList in a persistent file
-	bool readDataFileJSON(std::vector<bookmark_t>& masterList, bool ordered, std::function<void()> p_callback);
+	bool readDataFileJSON(std::vector<bookmark_t>& masterList, bool ordered, std::function<void()> p_callback, abort_callback& p_abort);
 	//Stores the contents of g_masterList in a persistent file
 	bool writeDataFileJSON(const std::vector<bookmark_t>& masterList);
 

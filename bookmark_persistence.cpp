@@ -37,7 +37,7 @@ void bookmark_persistence::replaceMasterList(std::vector<bookmark_t>& newContent
 					std::lock_guard<std::mutex> guard(bookmark_store::get_lock("ReplaceMasterList", owner));
 					//remove loading...
 					if (masterList.size()) {
-						if (masterList.at(0).get_desc().equals("loading")) {
+						if (masterList.at(0).get_desc().equals(kLoading)) {
 							masterList.erase(masterList.begin());
 						}
 					}
@@ -227,8 +227,12 @@ bool bookmark_persistence::writeDataFileJSON(const std::vector<bookmark_t>& mast
 	return bres;
 }
 
-//restore masterList from persistent storage (initquit)
-bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList, bool ordered, std::function<void()> p_callback) {
+//parse cancellation v1.8.2
+//todo: update json data format
+#define PARSE_CANCEL
+
+bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList, bool ordered, std::function<void()> p_callback, abort_callback& p_abort) {
+
 
 	bool bres = true;
 
@@ -255,8 +259,21 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList,
 		}
 
 		json_error_t error;
+
+#ifdef PARSE_CANCEL
+		uint8_t c;
+		int cr = 0;
+		do {
+			cr = _read(jf, &c, 1);
+		} while (c == '\n');
+		if (cr != 1 && c != '[') {
+			throw foobar2000_io::exception_io();
+		}
+		auto json = json_loadfd(jf, JSON_DECODE_ANY | JSON_DISABLE_EOF_CHECK, &error);
+#else
 		auto json = json_loadfd(jf, JSON_DECODE_ANY, &error);
 		_close(jf);
+#endif
 
 		if (strlen(error.text) && error.line != -1) {
 			FB2K_console_print_v("JSON error: ",error.text,
@@ -289,14 +306,22 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList,
 			//free(error);
 		}
 
-		clines = json_array_size(json);
-
+		json_t* js_wobj;
 		bookmark_t elem = bookmark_t();
 
-		size_t index;
-		json_t* js_wobj;
+#ifdef PARSE_CANCEL
+		while (true) {
+			js_wobj = json;
 
+			if (p_abort.is_aborting()) {
+				_close(jf);
+				return false;
+			}
+#else
+		size_t index;
+		clines = json_array_size(json);
 		json_array_foreach(json, index, js_wobj) {
+#endif
 
 			if (!json_is_object(js_wobj)) {
 				break;
@@ -318,7 +343,7 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList,
 
 			{
 				elem.set_time(0);
-				json_t* js_fld = json_object_get(js_wobj, "time");
+				js_fld = json_object_get(js_wobj, "time");
 				const char* dmp_str = json_string_value(js_fld);
 				if (dmp_str) {
 					elem.set_time(atof(dmp_str));
@@ -444,6 +469,24 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList,
 			}
 
 			temp_data.push_back(elem);	//save to vector
+
+#ifdef PARSE_CANCEL
+			do {
+				cr = _read(jf, &c, 1);
+			} while (c == '\n');
+			if (cr != 1) {
+				throw foobar2000_io::exception_io();
+			}
+			else if (c == ',') {
+				//..
+			}
+			else if (c == ']') {
+				_close(jf);
+				break;
+			}
+
+			json = json_loadfd(jf, JSON_DECODE_ANY | JSON_DISABLE_EOF_CHECK, &error);
+#endif
 		}
 	}
 	catch (foobar2000_io::exception_io e) {

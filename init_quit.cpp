@@ -17,7 +17,7 @@ namespace {
 
 				fb2k::inMainThread([]() {
 
-					FB2K_console_print_v("Restoring last bookmark on startup.");
+					FB2K_console_print_v("Checking startup options");
 					size_t cmaster = g_store.GetMasterList().size();
 
 					if (cmaster) {
@@ -60,7 +60,7 @@ namespace {
 										GUID guid_fbn;
 										bool res = mainmenu_commands_v3::g_find_by_name("Restore last session queue", guid_fbn);
 										if (res) {
-											FB2K_console_print_v("Restoring queue on startup.");
+											FB2K_console_print_v("Restoring queue on startup");
 											mainmenu_commands_v3::g_execute(guid_fbn);
 										}
 
@@ -100,6 +100,7 @@ namespace {
 					}
 					}));
 
+				FB2K_console_print_i("Initializing bookmarks...");
 				bool done = g_store.Initialize(ordered, add_bookmark_callback);
 			});
 		}
@@ -109,7 +110,8 @@ namespace {
 			try {
 				std::unique_lock<std::mutex> ulock{ bookmark_store::get_init_lock(), std::defer_lock};
 				if (!ulock.try_lock()) {
-					FB2K_console_print_e("Skipping save", "on_quit() before initialization");
+					bookmark_store::get_abort_callback().abort();
+					FB2K_console_print_e("Skipped save", "Quitting before initialization");
 					//
 					return;
 					//
