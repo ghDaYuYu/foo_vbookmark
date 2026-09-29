@@ -375,15 +375,6 @@ LRESULT CBookmarkPreferences::OnDefaults(WORD /*wNotifyCode*/, WORD wID, HWND /*
 	cfg_cu_keep_com_prefix = default_cfg_cu_keep_com_prefix;
 	cfg_cu_keep_flag = default_cfg_cu_keep_flag;
 
-#ifdef REC_AUDIO
-	cfg_dst_rec_path = default_cfg_dst_rec_path;
-#endif
-	cfg_txt_filter = default_cfg_txt_filter;
-	cfg_tf_filter = default_cfg_tf_filter;
-
-	cfg_rq_wait = default_cfg_rq_wait;
-
-
 	InitCfgUIPairs();
 
 	if(g_hWndTabDialog[CONF_0_TAB]) {
@@ -1016,7 +1007,7 @@ INT_PTR WINAPI CBookmarkPreferences::on_config_2_dialog_message(HWND wnd, UINT m
 	switch (msg) {
 	case WM_INITDIALOG:
 		setting_dlg = true;
-		init_config_2_dialog(wnd, true);
+		init_config_2_dialog(wnd);
 		setting_dlg = false;
 		return TRUE;
 	case WM_COMMAND:
